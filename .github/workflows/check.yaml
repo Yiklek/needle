@@ -1,0 +1,129 @@
+name: Check CI
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+      - dev/*
+      - merge/*
+jobs:
+  create-virtualenv:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      id: setup-python
+      continue-on-error: true
+      with:
+        python-version: "3.10"
+    - uses: syphar/restore-virtualenv@v1
+      id: cache-virtualenv
+    - uses: syphar/restore-pip-download-cache@v1
+      if: steps.cache-virtualenv.outputs.cache-hit != 'true'
+    - run: pip install -r requirements-dev.txt
+      if: steps.cache-virtualenv.outputs.cache-hit != 'true'
+
+  check-format:
+    name: Format Check
+    runs-on: ubuntu-latest
+    needs: create-virtualenv
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      id: setup-python
+      continue-on-error: true
+      with:
+        python-version: "3.10"
+    - uses: syphar/restore-virtualenv@v1
+      id: cache-virtualenv
+
+    - name: "[clang-format] Check for C/C++/Protobuf Format."
+      id: check-cc-format
+      continue-on-error: true
+      run: |
+        bash ./scripts/format-cc src "-n -Werror"
+    - name: "[black] Check for Python Format"
+      id: check-py-format
+      continue-on-error: true
+      run: |
+        bash ./scripts/format-py python "--check --diff"
+    - name: "[cmake-format] Check for Cmake Format"
+      id: check-cmake-format
+      continue-on-error: true
+      run: |
+        which cmake-format
+        cmake-format --version
+        cmake-format CMakeLists.txt --check
+    - name: Check Result
+      run: |
+        echo "check-cc-format:" ${{ steps.check-cc-format.outcome }}
+        echo "check-py-format:" ${{ steps.check-py-format.outcome }}
+        echo "check-cmake-format:" ${{ steps.check-cmake-format.outcome }}
+        if [[ ${{ steps.check-cc-format.outcome }} == "failure"
+              || ${{ steps.check-py-format.outcome }} == "failure"
+              || ${{ steps.check-cmake-format.outcome }} == "failure"
+              ]]; then
+          echo failure
+          exit 1;
+        else
+          echo success
+          exit 0;
+        fi
+  check-lint:
+    name: Lint Check
+    runs-on: ubuntu-latest
+    needs: create-virtualenv
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      id: setup-python
+      continue-on-error: true
+      with:
+        python-version: "3.10"
+    - uses: syphar/restore-virtualenv@v1
+      id: cache-virtualenv
+    - name: "[cmake-lint] Check for Cmake Lint"
+      id: check-cmake-lint
+      continue-on-error: true
+      run: |
+        which cmake-lint
+        cmake-lint --version
+        cmake-lint CMakeLists.txt
+    - name: "[pylint] Check for Python Lint"
+      id: check-py-lint
+      continue-on-error: true
+      run: |
+        bash ./scripts/lint-py python
+    - name: "[shellcheck] Check for Shell Lint"
+      uses: ludeeus/action-shellcheck@master
+      id: check-shell-lint
+      continue-on-error: true
+      env:
+        SHELLCHECK_OPTS: -e SC1071 -e SC2086
+      with:
+        scandir: "./scripts"
+    - name: "[clang-tidy] Check for CC Lint"
+      id: check-cc-lint
+      continue-on-error: true
+      run: |
+        TIDY_FLAGS="-quiet -warnings-as-errors=*" ./scripts/lint-cc src
+    - name: Check Result
+      run: |
+        echo "check-cc-lint:" ${{ steps.check-cc-lint.outcome }}
+        echo "check-py-lint:" ${{ steps.check-py-lint.outcome }}
+        echo "check-cmake-lint:" ${{ steps.check-cmake-lint.outcome }}
+        echo "check-shell-lint:" ${{ steps.check-shell-lint.outcome }}
+        if [[ ${{ steps.check-cc-lint.outcome }} == "failure"
+              || ${{ steps.check-py-lint.outcome }} == "failure"
+              || ${{ steps.check-cmake-lint.outcome }} == "failure"
+              || ${{ steps.check-shell-lint.outcome }} == "failure"
+              ]]; then
+          echo failure
+          exit 1;
+        else
+          echo success
+          exit 0;
+        fi
+

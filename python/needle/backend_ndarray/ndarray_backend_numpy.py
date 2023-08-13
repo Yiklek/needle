@@ -16,9 +16,7 @@ class Array:
 
 
 def to_numpy(a, shape, strides, offset):
-    return np.lib.stride_tricks.as_strided(
-        a.array[offset:], shape, tuple([s * _datetype_size for s in strides])
-    )
+    return np.lib.stride_tricks.as_strided(a.array[offset:], shape, tuple([s * _datetype_size for s in strides]))
 
 
 def from_numpy(a, out):
@@ -66,7 +64,7 @@ def scalar_div(a, val, out):
 
 
 def scalar_power(a, val, out):
-    out.array[:] = a.array ** val
+    out.array[:] = a.array**val
 
 
 def ewise_maximum(a, b, out):

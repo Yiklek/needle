@@ -3,8 +3,12 @@ sys.path.append('./python')
 import itertools
 import numpy as np
 import pytest
-import mugrade
 import torch
+try:
+    import mugrade
+except:
+	pass
+
 
 import needle as ndl
 from needle import backend_ndarray as nd
@@ -364,4 +368,5 @@ def submit_new_nd_backend():
 
 
 if __name__ == "__main__":
-    submit_new_nd_backend()
+    pass
+    # submit_new_nd_backend()

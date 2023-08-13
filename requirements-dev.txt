@@ -1,0 +1,7 @@
+pylint~=2.17
+black~=23.3
+cmakelang~=0.6.13
+clang-format~=16.0
+clang-tidy~=15.0
+ninja
+pybind11

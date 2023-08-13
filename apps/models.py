@@ -1,23 +1,54 @@
+import numpy as np
+import math
+import needle.nn as nn
+import needle as ndl
 import sys
 sys.path.append('./python')
-import needle as ndl
-import needle.nn as nn
-import math
-import numpy as np
 np.random.seed(0)
+
+
+def ResidualBlock(in_channels, out_channels, kernel_size, stride, device=None):
+    # BEGIN YOUR SOLUTION
+    main = nn.Sequential(ConvBN(in_channels, out_channels, kernel_size, stride, device=device),
+                         ConvBN(in_channels, out_channels, kernel_size, stride, device=device))
+    return nn.Residual(main)
+    # END YOUR SOLUTION
+
+
+class ConvBN(ndl.nn.Module):
+    def __init__(self, a, b, k, s, device=None, dtype="float32"):
+        self.conv = nn.Conv(a, b, k, s, device=device, dtype=dtype)
+        self.norm = nn.BatchNorm2d(dim=b, device=device, dtype=dtype)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.norm(x)
+        x = self.relu(x)
+        return x
 
 
 class ResNet9(ndl.nn.Module):
     def __init__(self, device=None, dtype="float32"):
         super().__init__()
         ### BEGIN YOUR SOLUTION ###
-        raise NotImplementedError() ###
-        ### END YOUR SOLUTION
+        self.model = nn.Sequential(ConvBN(3, 16, 7, 4, device=device),
+                                   ConvBN(16, 32, 3, 2, device=device),
+                                   ResidualBlock(32, 32, 3, 1, device=device),
+                                   ConvBN(32, 64, 3, 2, device=device),
+                                   ConvBN(64, 128, 3, 2, device=device),
+                                   ResidualBlock(128, 128, 3, 1, device=device),
+                                   nn.Flatten(),
+                                   nn.Linear(128, 128, device=device),
+                                   nn.ReLU(),
+                                   nn.Linear(128, 10, device=device)
+                                   )
+        # END YOUR SOLUTION
 
     def forward(self, x):
-        ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        ### END YOUR SOLUTION
+        # BEGIN YOUR SOLUTION
+        return self.model(x)
+        # END YOUR SOLUTION
 
 
 class LanguageModel(nn.Module):
@@ -34,9 +65,20 @@ class LanguageModel(nn.Module):
         num_layers: Number of layers in RNN or LSTM
         """
         super(LanguageModel, self).__init__()
-        ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        ### END YOUR SOLUTION
+        # BEGIN YOUR SOLUTION
+        self.embedding_size = embedding_size
+        self.output_size = output_size
+        self.hidden_size = hidden_size
+
+        self.embedding = nn.Embedding(output_size, embedding_size, device, dtype)
+        if seq_model == 'rnn':
+            self.model = nn.RNN(embedding_size, hidden_size, num_layers, device=device, dtype=dtype)
+        elif seq_model == 'lstm':
+            self.model = nn.LSTM(embedding_size, hidden_size, num_layers, device=device, dtype=dtype)
+        else:
+            raise NotImplementedError()
+        self.linear = nn.Linear(hidden_size, output_size, device=device, dtype=dtype)
+        # END YOUR SOLUTION
 
     def forward(self, x, h=None):
         """
@@ -51,9 +93,13 @@ class LanguageModel(nn.Module):
         h of shape (num_layers, bs, hidden_size) if using RNN,
             else h is tuple of (h0, c0), each of shape (num_layers, bs, hidden_size)
         """
-        ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        ### END YOUR SOLUTION
+        # BEGIN YOUR SOLUTION
+        seq_len, bs = x.shape
+        x = self.embedding(x)   # (seq_len, bs, embedding_size)
+        x, h_ = self.model(x, h)  # (seq_len, bs, hidden_size)
+        x = self.linear(x.reshape((seq_len*bs, self.hidden_size)))
+        return x, h_
+        # END YOUR SOLUTION
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 """Core data structures."""
+from .backend_selection import Device, array_api, NDArray, default_device
 import needle
 from typing import List, Optional, NamedTuple, Tuple, Union
 from collections import namedtuple
@@ -8,8 +9,6 @@ from needle import init
 # needle version
 LAZY_MODE = False
 TENSOR_COUNTER = 0
-
-from .backend_selection import Device, array_api, NDArray, default_device
 
 
 class Op:
@@ -34,9 +33,7 @@ class Op:
         """
         raise NotImplementedError()
 
-    def gradient(
-        self, out_grad: "Value", node: "Value"
-    ) -> Union["Value", Tuple["Value"]]:
+    def gradient(self, out_grad: "Value", node: "Value") -> Union["Value", Tuple["Value"]]:
         """Compute partial adjoint for each input value for a given output adjoint.
 
         Parameters
@@ -56,7 +53,7 @@ class Op:
         raise NotImplementedError()
 
     def gradient_as_tuple(self, out_grad: "Value", node: "Value") -> Tuple["Value"]:
-        """ Convenience method to always return a tuple from gradient call"""
+        """Convenience method to always return a tuple from gradient call"""
         output = self.gradient(out_grad, node)
         if isinstance(output, tuple):
             return output
@@ -67,7 +64,7 @@ class Op:
 
 
 class TensorOp(Op):
-    """ Op class specialized to output tensors, will be alterate subclasses for other structures """
+    """Op class specialized to output tensors, will be alterate subclasses for other structures"""
 
     def __call__(self, *args):
         return Tensor.make_from_op(self, args)
@@ -97,9 +94,7 @@ class Value:
         if self.cached_data is not None:
             return self.cached_data
         # note: data implicitly calls realized cached data
-        self.cached_data = self.op.compute(
-            *[x.realize_cached_data() for x in self.inputs]
-        )
+        self.cached_data = self.op.compute(*[x.realize_cached_data() for x in self.inputs])
         self.cached_data
         return self.cached_data
 
@@ -158,7 +153,7 @@ class Value:
         return data.numpy() if not isinstance(data, tuple) else [x.numpy() for x in data]
 
 
-### Not needed in HW1
+# Not needed in HW1
 class TensorTuple(Value):
     """Represent a tuple of tensors.
 
@@ -194,15 +189,7 @@ class TensorTuple(Value):
 class Tensor(Value):
     grad: "Tensor"
 
-    def __init__(
-        self,
-        array,
-        *,
-        device: Optional[Device] = None,
-        dtype="float32",
-        requires_grad=True,
-        **kwargs
-    ):
+    def __init__(self, array, *, device: Optional[Device] = None, dtype="float32", requires_grad=True, **kwargs):
         if isinstance(array, Tensor):
             if device is None:
                 device = array.device
@@ -212,9 +199,7 @@ class Tensor(Value):
                 cached_data = array.realize_cached_data()
             else:
                 # fall back, copy through numpy conversion
-                cached_data = Tensor._array_from_numpy(
-                    array.numpy(), device=device, dtype=dtype
-                )
+                cached_data = Tensor._array_from_numpy(array.numpy(), device=device, dtype=dtype)
         else:
             device = device if device else default_device()
             cached_data = Tensor._array_from_numpy(array, device=device, dtype=dtype)
@@ -248,9 +233,7 @@ class Tensor(Value):
         tensor._init(
             None,
             [],
-            cached_data=data
-            if not isinstance(data, Tensor)
-            else data.realize_cached_data(),
+            cached_data=data if not isinstance(data, Tensor) else data.realize_cached_data(),
             requires_grad=requires_grad,
         )
         return tensor
@@ -288,11 +271,7 @@ class Tensor(Value):
         return data.device
 
     def backward(self, out_grad=None):
-        out_grad = (
-            out_grad
-            if out_grad
-            else init.ones(*self.shape, dtype=self.dtype, device=self.device)
-        )
+        out_grad = out_grad if out_grad else init.ones(*self.shape, dtype=self.dtype, device=self.device)
         compute_gradient_of_variables(self, out_grad)
 
     def __repr__(self):
@@ -314,16 +293,19 @@ class Tensor(Value):
             return needle.ops.MulScalar(other)(self)
 
     def __pow__(self, other):
-        ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        ### END YOUR SOLUTION
+        # BEGIN YOUR SOLUTION
+        if isinstance(other, Tensor):
+            raise NotImplementedError()
+        else:
+            return needle.ops.PowerScalar(other)(self)
+        # END YOUR SOLUTION
 
     def __sub__(self, other):
         if isinstance(other, Tensor):
             return needle.ops.EWiseAdd()(self, needle.ops.Negate()(other))
         else:
             return needle.ops.AddScalar(-other)(self)
-       
+
     def __rsub__(self, other):
         if isinstance(other, Tensor):
             return needle.ops.EWiseAdd()(needle.ops.Negate()(self), other)
@@ -338,6 +320,9 @@ class Tensor(Value):
 
     def __matmul__(self, other):
         return needle.ops.MatMul()(self, other)
+
+    def __rmatmul__(self, other):
+        return needle.ops.MatMul()(other, self)
 
     def matmul(self, other):
         return needle.ops.MatMul()(self, other)
@@ -358,8 +343,8 @@ class Tensor(Value):
         return needle.ops.Transpose(axes)(self)
 
     __radd__ = __add__
+
     __rmul__ = __mul__
-    __rmatmul__ = __matmul__
 
 
 def compute_gradient_of_variables(output_tensor, out_grad):
@@ -376,9 +361,18 @@ def compute_gradient_of_variables(output_tensor, out_grad):
     # Traverse graph in reverse topological order given the output_node that we are taking gradient wrt.
     reverse_topo_order = list(reversed(find_topo_sort([output_tensor])))
 
-    ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
-    ### END YOUR SOLUTION
+    # BEGIN YOUR SOLUTION
+    for node in reverse_topo_order:
+        node.grad = sum_node_list(node_to_output_grads_list[node])
+
+        if node.is_leaf():
+            continue
+        for i, grad in enumerate(node.op.gradient_as_tuple(node.grad, node)):
+            input_ = node.inputs[i]
+            if input_ not in node_to_output_grads_list:
+                node_to_output_grads_list[input_] = []
+            node_to_output_grads_list[input_].append(grad)
+    # END YOUR SOLUTION
 
 
 def find_topo_sort(node_list: List[Value]) -> List[Value]:
@@ -389,16 +383,28 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     after all its predecessors are traversed due to post-order DFS, we get a topological
     sort.
     """
-    ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
-    ### END YOUR SOLUTION
+    # BEGIN YOUR SOLUTION
+    visited = set()
+    topo_order = []
+    for node in node_list:
+        if node not in visited:
+            topo_sort_dfs(node, visited, topo_order)
+    return topo_order
+    # END YOUR SOLUTION
 
 
 def topo_sort_dfs(node, visited, topo_order):
     """Post-order DFS"""
-    ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
-    ### END YOUR SOLUTION
+    # BEGIN YOUR SOLUTION
+    if node in visited:
+        return
+
+    for next in node.inputs:
+        topo_sort_dfs(next, visited, topo_order)
+
+    visited.add(node)
+    topo_order.append(node)
+    # END YOUR SOLUTION
 
 
 ##############################

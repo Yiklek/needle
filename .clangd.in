@@ -1,0 +1,15 @@
+CompileFlags:
+  Add:
+    - --cuda-path=${CUDAToolkit_LIBRARY_ROOT}
+    - -Wno-unknown-warning-option
+  Remove:
+    - -forward-unknown-to-host-compiler
+    - --generate-code*
+    - -fno-lifetime-dse
+    - -Xcompiler=-fvisibility=hidden
+    - -Xcompiler=-fPIC
+    - -rdc=true
+Diagnostics:
+  Suppress:
+    - drv_unknown_argument
+    - drv_unsupported_opt
