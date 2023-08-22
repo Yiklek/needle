@@ -1,0 +1,11 @@
+syntax = "proto2";
+package fineflow;
+
+enum DeviceType {
+  kInvalidDevice = 0;
+  kCPU = 1;
+  kCUDA = 2;
+  kMockDevice = 3;  // pseudo device for test.
+  // kMeta = 4;
+  // kMLU = 5;  // Cambricon MLU
+}

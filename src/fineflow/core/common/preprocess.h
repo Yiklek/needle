@@ -1,0 +1,10 @@
+#ifndef FINEFLOW_CORE_COMMON_PREPROCESS_H_
+#define FINEFLOW_CORE_COMMON_PREPROCESS_H_
+
+#define FF_PP_STRINGIZE(...) FF_PP_STRINGIZE_I(__VA_ARGS__)
+#define FF_PP_STRINGIZE_I(...) #__VA_ARGS__
+
+#define FF_PP_CAT(a, b) FF_PP_CAT_I(a, b)
+#define FF_PP_CAT_I(a, b) a##b
+
+#endif  // FINEFLOW_CORE_COMMON_PREPROCESS_H_

@@ -5,7 +5,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS
     ON
     CACHE BOOL "")
-
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(
   Python3
   COMPONENTS Development Interpreter
@@ -47,6 +48,58 @@ endif()
 
 install(TARGETS ndarray_backend_cpu LIBRARY DESTINATION ${PYTHON_MODULE_PATH}
                                             COMPONENT backend)
+
+include(FetchFmt)
+include(FetchProtobuf)
+include(FetchExpected)
+
+fetch_fmt()
+fetch_protobuf()
+fetch_expected()
+
+set(NEEDLE_THIRD_COMMON_LIBS "")
+list(APPEND NEEDLE_THIRD_COMMON_LIBS tl::expected)
+list(APPEND NEEDLE_THIRD_COMMON_LIBS fmt::fmt)
+# list(APPEND NEEDLE_THIRD_COMMON_LIBS range-v3)
+# list(APPEND NEEDLE_THIRD_COMMON_LIBS spdlog::spdlog_header_only)
+
+add_library(ThirdCommon INTERFACE)
+target_link_libraries(ThirdCommon INTERFACE ${NEEDLE_THIRD_COMMON_LIBS})
+
+add_library(proto-objects 
+    OBJECT 
+    "src/fineflow/core/common/data_type.proto" 
+    "src/fineflow/core/common/error.proto"
+    "src/fineflow/core/common/device_type.proto"
+)
+
+target_link_libraries(proto-objects PUBLIC protobuf::libprotobuf)
+
+set(PROTO_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/proto_generated")
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(proto-objects PUBLIC "$<BUILD_INTERFACE:${PROTO_BINARY_DIR}>")
+
+protobuf_generate(
+    TARGET proto-objects
+    IMPORT_DIRS "src"
+    PROTOC_OUT_DIR "${PROTO_BINARY_DIR}"
+)
+add_library(FineflowCommon 
+    "src/fineflow/core/common/error.cpp"
+    "src/fineflow/core/common/error_util.cpp"
+)
+target_link_libraries(FineflowCommon PUBLIC proto-objects ThirdCommon)
+
+add_library(FineflowCore 
+    "src/fineflow/core/tensor.cpp"
+    "src/fineflow/core/op_kernel.cpp"
+    "src/fineflow/core/kernels/add_kernel.cpp"
+    "src/fineflow/core/cpu/cpu_tensor.cpp"
+)
+target_link_libraries(FineflowCore PUBLIC proto-objects FineflowCommon)
+
+pybind11_add_module(FineflowPyLib src/fineflow/api/python/fineflow.cpp)
+target_link_libraries(FineflowPyLib PUBLIC FineflowCore)
 
 # ##############################################################################
 # CUDA BACKEND ###
