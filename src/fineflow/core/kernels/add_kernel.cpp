@@ -1,4 +1,3 @@
-// #include "fineflow/core/op_kernel.h"
 #include "fineflow/core/kernels/add_kernel.h"
 
 #include "fineflow/core/common/auto_register.hpp"
@@ -35,7 +34,7 @@ std::unique_ptr<AddKernel> NewAdd() {
   return std::unique_ptr<AddKernel>(new AddKernelImpl<T>());
 }
 
-std::unique_ptr<AddKernel> AddKernelFactory::create(DataType dtype) {  // NOLINT
+std::unique_ptr<AddKernel> AddKernelFactory::create(DataType dtype) {
   static const std::map<DataType, std::function<std::unique_ptr<AddKernel>()>> new_add_handle{
       {DataType::kFloat, NewAdd<float>}};
 

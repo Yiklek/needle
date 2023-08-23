@@ -25,9 +25,9 @@ public:
 
   using Target = T;
   template <typename... Args>
-  std::unique_ptr<Target> create(Args&&... args) {  // NOLINT
-    return static_cast<Extend*>(this)->create(std::forward<Args...>(args...));
-  };  // NOLINT
+  std::unique_ptr<Target> create(Args&&... args) {
+    return static_cast<Extend*>(this)->create(std::forward<Args>(args)...);
+  };
 };
 
 template <typename T, typename D>

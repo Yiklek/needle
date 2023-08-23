@@ -3,6 +3,7 @@
 #include <cstdlib>
 
 #include "fineflow/core/tensor.h"
+#include "fmt/format.h"
 
 namespace fineflow {
 
@@ -41,6 +42,10 @@ private:
   void alloc() {
     if (!buffer_ && buffer_size_ > 0) {
       buffer_ = std::aligned_alloc(64, buffer_size_);
+      if (buffer_) return;
+      buffer_ = std::malloc(buffer_size_);
+      if (buffer_) return;
+      std::cerr << fmt::format("alloc {} bytes failed", buffer_size_);
     }
   }
   void *buffer_ = nullptr;

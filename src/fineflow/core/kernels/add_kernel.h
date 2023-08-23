@@ -13,6 +13,6 @@ public:
 
 class AddKernelFactory final : public OpKernelFactory<AddKernelFactory, AddKernel> {
 public:
-  std::unique_ptr<AddKernel> create(DataType dtype);  // NOLINT
+  std::unique_ptr<AddKernel> create(DataType dtype);
 };
 }  // namespace fineflow

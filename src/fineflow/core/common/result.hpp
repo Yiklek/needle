@@ -12,6 +12,11 @@ inline tl::unexpected<E> Fail(E&& e) {
   return tl::unexpected(std::forward<E>(e));
 }
 
+template <class T>
+inline Ret<T> Ok() {
+  return {};
+}
+
 #define CHECK_OR_RETURN_INTERNAL(expr, error_msg)                                              \
   if (!(expr))                                                                                 \
   return Error::CheckFailedError().addStackFrame([](const char* function) {                    \

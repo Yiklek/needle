@@ -15,20 +15,18 @@ public:
   template <typename Derived>
   struct RawRegisterType {
     RawRegisterType(Key k) {  // NOLINT
-      AutoRegistrationFactory<Key, Base, Args...>::Get()
-          .creatorsMut()
-          ->emplace(k, [](Args&&...) { return new Derived; })
-          .second;
+      AutoRegistrationFactory<Key, Base, Args...>::Get().creatorsMut()->emplace(
+          k, [](Args&&... args) { return new Derived(std::forward<Args>(args)...); });
     }
   };
 
   struct CreatorRegisterType {
     CreatorRegisterType(Key k, Creator v) {
-      AutoRegistrationFactory<Key, Base, Args...>::Get().creatorsMut()->emplace(k, v).second;
+      AutoRegistrationFactory<Key, Base, Args...>::Get().creatorsMut()->emplace(k, v);
     }
   };
 
-  Base* New(Key k, Args&&... args) const {  // NOLINT
+  Base* New(Key k, Args&&... args) const {
     auto creators_it = creators().find(k);
     if (creators_it == creators().end()) {
       std::cout << "Unregistered: key: " << k << "  Base type name:" << typeid(Base).name() << "  Key type name"
@@ -39,7 +37,7 @@ public:
 
   bool isClassRegistered(Key k, Args&&... /*args*/) const { return creators().find(k) != creators().end(); }
 
-  static AutoRegistrationFactory<Key, Base, Args...>& Get() {  // NOLINT
+  static AutoRegistrationFactory<Key, Base, Args...>& Get() {
     static AutoRegistrationFactory<Key, Base, Args...> obj;
     return obj;
   }

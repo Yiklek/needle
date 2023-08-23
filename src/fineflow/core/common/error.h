@@ -98,7 +98,7 @@ public:
   Error(const Error&) = default;
   ~Error() = default;
 
-  [[nodiscard]] std::shared_ptr<StackedError> stackedError() const { return stacked_error_; }  // NOLINT
+  [[nodiscard]] std::shared_ptr<StackedError> stackedError() const { return stacked_error_; }
   const ErrorProto* operator->() const { return stacked_error_->errorProto().get(); }
   ErrorProto* operator->() { return stacked_error_->errorProtoMut(); }
   operator std::string() const;  // NOLINT
@@ -165,7 +165,7 @@ public:
     kOverrideThenMergeMessage,
   };
 
-  [[nodiscard]] MsgCollectingMode msgCollectingMode() const { return msg_collecting_mode_; }  // NOLINT
+  [[nodiscard]] MsgCollectingMode msgCollectingMode() const { return msg_collecting_mode_; }
   void msgCollectingMode(enum MsgCollectingMode val) { msg_collecting_mode_ = val; }
 
 private:
