@@ -2,22 +2,30 @@
 #define FINEFLOW_CORE_CPU_CPU_TENSOR_H_
 #include <cstdlib>
 
-#include "fineflow/core/tensor.h"
+#include "fineflow/core/blob_tensor.h"
 #include "fmt/format.h"
 
 namespace fineflow {
 
-class CpuTensor final : public Tensor {
+class CpuTensor final : public BlobTensor {
 public:
-  CpuTensor(DataType dtype, void *buffer, uint64_t buffer_size)
-      : dtype_(dtype), buffer_(buffer), buffer_size_(buffer_size) {}
+  CpuTensor(DataType dtype, void *buffer, uint64_t buffer_size, uint64_t offset = 0)
+      : dtype_(dtype), buffer_(buffer), buffer_size_(buffer_size), offset_(offset) {}
 
-  explicit CpuTensor(DataType dtype, uint64_t buffer_size) : dtype_(dtype), buffer_size_(buffer_size) { alloc(); }
+  CpuTensor(DataType dtype, Shape shape)
+      : CpuTensor(dtype, GetElementCount(shape) * **DataTypeSizeRegistryMgr::Get().GetValue(dtype), 0) {
+    shape_ = shape;
+    stride_ = GetCompactStride(shape);
+  }
+  CpuTensor(DataType dtype, uint64_t buffer_size, uint64_t offset = 0)
+      : dtype_(dtype), buffer_size_(buffer_size), offset_(offset) {
+    alloc();
+  }
 
-  CpuTensor(const CpuTensor &other) : CpuTensor(other.dtype(), other.buffer_size_) {
+  CpuTensor(const CpuTensor &other) : CpuTensor(other.dtype(), other.buffer_size_, other.offset_) {
     std::memcpy(buffer_, other.buffer_, buffer_size_);
   };
-  CpuTensor(CpuTensor &&other) noexcept : CpuTensor(other.dtype(), other.buffer_, other.buffer_size_) {
+  CpuTensor(CpuTensor &&other) noexcept : CpuTensor(other.dtype(), other.buffer_, other.buffer_size_, other.offset_) {
     other.buffer_ = nullptr;
   }
   CpuTensor &operator=(const CpuTensor &other);
@@ -31,12 +39,15 @@ public:
   [[nodiscard]] const void *rawPtr() const override { return buffer_; };
   void *rawPtrMut() override { return buffer_; };
 
-  [[nodiscard]] uint64_t bufferSize() const { return buffer_size_; }
+  [[nodiscard]] const uint64_t bufferSize() const override { return buffer_size_; }
+  [[nodiscard]] const uint64_t &offset() const override { return offset_; }
+  [[nodiscard]] uint64_t &offsetMut() override { return offset_; }
 
 private:
   void release() {
     if (buffer_) {
       free(buffer_);
+      buffer_ = nullptr;
     }
   }
   void alloc() {
@@ -53,6 +64,7 @@ private:
   Shape shape_;
   Stride stride_;
   DataType dtype_;
+  uint64_t offset_;
 };
 }  // namespace fineflow
 #endif  // FINEFLOW_CORE_CPU_CPU_TENSOR_H_

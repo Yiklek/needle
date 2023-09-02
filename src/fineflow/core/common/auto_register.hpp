@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "fineflow/core/common/hash_container.h"
+#include "fineflow/core/common/log.h"
 namespace fineflow {
 
 template <typename Key, typename Base, typename... Args>
@@ -29,8 +30,8 @@ public:
   Base* New(Key k, Args&&... args) const {
     auto creators_it = creators().find(k);
     if (creators_it == creators().end()) {
-      std::cout << "Unregistered: key: " << k << "  Base type name:" << typeid(Base).name() << "  Key type name"
-                << typeid(Key).name();
+      LOG(err) << "Unregistered: key: " << k << "  Base type name:" << typeid(Base).name() << "  Key type name"
+               << typeid(Key).name();
     }
     return creators_it->second(std::forward<Args>(args)...);
   }
@@ -49,7 +50,7 @@ private:
 
   const HashMap<Key, Creator>& creators() const {
     if (!hasCreators()) {
-      std::cout << "Unregistered key type: " << typeid(Key).name();
+      LOG(err) << "Unregistered key type: " << typeid(Key).name();
     }
     return *creators_.get();
   }

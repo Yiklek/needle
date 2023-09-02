@@ -1,9 +1,12 @@
+#ifndef FINEFLOW_CORE_KERNELS_ADD_KERNEL_H_
+#define FINEFLOW_CORE_KERNELS_ADD_KERNEL_H_
 #include "fineflow/core/op_kernel.h"
 #include "fineflow/core/op_kernel_factory.h"
+
 namespace fineflow {
 
-template <class T>
-void EwiseAdd(const Tensor& a, const Tensor& b, Tensor* out);
+// template <class T>
+// void EwiseAdd(const Tensor& a, const Tensor& b, Tensor* out);
 
 class AddKernel : public OpKernel {
 public:
@@ -16,3 +19,4 @@ public:
   std::unique_ptr<AddKernel> create(DataType dtype);
 };
 }  // namespace fineflow
+#endif  // FINEFLOW_CORE_KERNELS_ADD_KERNEL_H_

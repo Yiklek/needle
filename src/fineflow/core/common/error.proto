@@ -1,9 +1,9 @@
-syntax = "proto2";
+syntax = "proto3";
 package fineflow;
 
 message FieldValue {
-  required string field = 1;
-  required string value = 2;
+  string field = 1;
+  string value = 2;
 }
 
 enum OpcodeType {
@@ -131,8 +131,8 @@ message TimeoutError {}
 message ValueNotFoundError {}
 
 message ErrorProto {
-  optional string msg = 1 [default = ""];
-  optional string frame_msg = 2 [default = ""];
+  optional string msg = 1;
+  optional string frame_msg = 2;
   oneof error_type {
     // ConfigAssertFailedError config_assert_failed_error = 12;
     // ConfigResourceUnavailableError config_resource_unavailable_error = 13;

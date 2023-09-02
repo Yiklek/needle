@@ -13,3 +13,5 @@ Diagnostics:
   Suppress:
     - drv_unknown_argument
     - drv_unsupported_opt
+    - pp_file_not_found
+    - redefinition_different_type

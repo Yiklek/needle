@@ -1,17 +1,20 @@
 #ifndef FINEFLOW_CORE_COMMON_ERROR_H_
 #define FINEFLOW_CORE_COMMON_ERROR_H_
 
+#include <filesystem>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "fineflow/core/common/error.pb.h"
 #include "fineflow/core/common/hash.hpp"
+#include "fineflow/core/common/preprocess.h"
+#include "fineflow/core/common/result_types.h"
 namespace fineflow {
 inline std::string RemoveProjectPathPrefix(const std::string& filename) {
-#if defined(fineflow_SOURCE_DIR) && defined(fineflow_BINARY_DIR)
-  std::string project_path = ONEFLOW_SOURCE_DIR;
-  std::string project_build_path = ONEFLOW_BINARY_DIR;
+#if defined(FINEFLOW_SOURCE_DIR) && defined(FINEFLOW_BINARY_DIR)
+  std::string project_path = FF_PP_STRINGIZE(FINEFLOW_SOURCE_DIR);
+  std::string project_build_path = FF_PP_STRINGIZE(FINEFLOW_BINARY_DIR);
   if (filename.rfind(project_build_path, 0) == 0) {
     return std::filesystem::relative(filename, project_build_path);
   } else if (filename.rfind(project_path, 0) == 0) {
@@ -71,12 +74,12 @@ public:
   [[nodiscard]] const FrameVector& stackFrame() const { return stack_frame_; }
   [[nodiscard]] const std::shared_ptr<const ErrorProto>& errorProto() const { return error_proto_; }
   [[nodiscard]] std::string debugString() const {
-    std::string str;
+    std::ostringstream ss;
     for (const auto& frame : stackFrame()) {
-      str += frame.debugString() + "\n";
+      ss << frame.debugString() << std::endl;
     }
-    str += errorProto()->DebugString();
-    return str;
+    ss << errorProto()->DebugString();
+    return ss.str();
   }
 
   // Setters
@@ -101,12 +104,15 @@ public:
   [[nodiscard]] std::shared_ptr<StackedError> stackedError() const { return stacked_error_; }
   const ErrorProto* operator->() const { return stacked_error_->errorProto().get(); }
   ErrorProto* operator->() { return stacked_error_->errorProtoMut(); }
-  operator std::string() const;  // NOLINT
+  template <class T>
+  inline operator Maybe<T, Error>() {
+    return Failure<Error>(std::move(*this));
+  }
   void assign(const Error& other) { stacked_error_ = other.stacked_error_; }
   void merge(const Error& other);
 
   Error&& addStackFrame(const ErrorStackFrame& error_stack_frame);
-  Error&& getStackTrace(int64_t depth = 32, int64_t skip_n_firsts = 2);
+  // Error&& getStackTrace(int64_t depth = 32, int64_t skip_n_firsts = 2);
 
   // NOLINTBEGIN: readability-identifier-naming
   static Error Ok();

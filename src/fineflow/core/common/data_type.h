@@ -1,63 +1,57 @@
 #ifndef FINEFLOW_CORE_COMMON_DATA_TYPE_H_
 #define FINEFLOW_CORE_COMMON_DATA_TYPE_H_
+#include <complex>
 #include <type_traits>
 
 #include "fineflow/core/common/data_type.pb.h"
+#include "fineflow/core/common/registry_manager.hpp"
+#include "fineflow/core/common/traits.hpp"
+#include "fineflow/core/common/types_tuple.h"
+#include "fmt/format.h"
 namespace fineflow {
 
 template <typename T, typename T2 = void>
 struct GetDataType;
 
+template <DataType type>
+struct DataTypeToClass;
+
 template <>
 struct GetDataType<void> : std::integral_constant<DataType, DataType::kChar> {};
 
-template <>
-struct GetDataType<float> : std ::integral_constant<DataType, DataType ::kFloat> {};
-inline float GetTypeByDataType(std ::integral_constant<DataType, DataType ::kFloat>) { return {}; }
-template <>
-struct GetDataType<double> : std ::integral_constant<DataType, DataType ::kDouble> {};
-inline double GetTypeByDataType(std ::integral_constant<DataType, DataType ::kDouble>) { return {}; }
-template <>
-struct GetDataType<int8_t> : std ::integral_constant<DataType, DataType ::kInt8> {};
-inline int8_t GetTypeByDataType(std ::integral_constant<DataType, DataType ::kInt8>) { return {}; }
-template <>
-struct GetDataType<int32_t> : std ::integral_constant<DataType, DataType ::kInt32> {};
-inline int32_t GetTypeByDataType(std ::integral_constant<DataType, DataType ::kInt32>) { return {}; }
-template <>
-struct GetDataType<int64_t> : std ::integral_constant<DataType, DataType ::kInt64> {};
-inline int64_t GetTypeByDataType(std ::integral_constant<DataType, DataType ::kInt64>) { return {}; }
-template <>
-struct GetDataType<char> : std ::integral_constant<DataType, DataType ::kChar> {};
-inline char GetTypeByDataType(std ::integral_constant<DataType, DataType ::kChar>) { return {}; }
-template <>
-struct GetDataType<uint8_t> : std ::integral_constant<DataType, DataType ::kUInt8> {};
-inline uint8_t GetTypeByDataType(std ::integral_constant<DataType, DataType ::kUInt8>) { return {}; }
-template <>
-struct GetDataType<bool> : std ::integral_constant<DataType, DataType ::kBool> {};
-inline bool GetTypeByDataType(std ::integral_constant<DataType, DataType ::kBool>) { return {}; }
-// template <>
-// struct GetDataType<OFRecord> : std ::integral_constant<DataType, DataType ::kOFRecord> {};
-// inline OFRecord GetTypeByDataType(std ::integral_constant<DataType, DataType ::kOFRecord>) { return {}; }
-template <>
-struct GetDataType<uint32_t> : std ::integral_constant<DataType, DataType ::kUInt32> {};
-inline uint32_t GetTypeByDataType(std ::integral_constant<DataType, DataType ::kUInt32>) { return {}; }
-// template <>
-// struct GetDataType<float16> : std ::integral_constant<DataType, DataType ::kFloat16> {};
-// inline float16 GetTypeByDataType(std ::integral_constant<DataType, DataType ::kFloat16>) { return {}; }
-// template <>
-// struct GetDataType<bfloat16> : std ::integral_constant<DataType, DataType ::kBFloat16> {};
-// inline bfloat16 GetTypeByDataType(std ::integral_constant<DataType, DataType ::kBFloat16>) { return {}; }
-// template <>
-// struct GetDataType<std ::complex<float> > : std ::integral_constant<DataType, DataType ::kComplex64> {};
-// inline std ::complex<float> GetTypeByDataType(std ::integral_constant<DataType, DataType ::kComplex64>) { return {};
-// } template <> struct GetDataType<std ::complex<double> > : std ::integral_constant<DataType, DataType ::kComplex128>
-// {}; inline std ::complex<double> GetTypeByDataType(std ::integral_constant<DataType, DataType ::kComplex128>) {
-// return {}; }
-template <>
-struct GetDataType<uint64_t> : std ::integral_constant<DataType, DataType ::kUInt64> {};
-inline uint64_t GetTypeByDataType(std ::integral_constant<DataType, DataType ::kUInt64>) { return {}; }
-template <>
-struct GetDataType<int16_t> : std ::integral_constant<DataType, DataType ::kInt16> {};
-inline int16_t GetTypeByDataType(std ::integral_constant<DataType, DataType ::kInt16>) { return {}; };
+template <DataType type>
+using DataTypeToType = typename DataTypeToClass<type>::type;
+
+using DataTypeSizeRegistryMgr = RegistryMgr<DataType, size_t>;
+
+#define SPECIALIZE_GET_DATA_TYPE(type_cpp, type_proto)                          \
+  REGISTER_KEY_VALUE(type_proto, sizeof(type_cpp));                             \
+  template <>                                                                   \
+  struct GetDataType<type_cpp> : std::integral_constant<DataType, type_proto> { \
+    static constexpr size_t size = sizeof(type_cpp);                            \
+  };                                                                            \
+  template <>                                                                   \
+  struct DataTypeToClass<type_proto> : type_identity<type_cpp> {                \
+    static constexpr size_t size = sizeof(type_cpp);                            \
+  };
+
+#define SPECIALIZE_GET_DATA_TYPE_TUPLE(tuple, i) \
+  FF_PP_FORWARD(SPECIALIZE_GET_DATA_TYPE, BOOST_PP_TUPLE_ENUM(BOOST_PP_TUPLE_ELEM(i, tuple)))
+
+// for i in [0, CPU_PRIMITIVE_NATIVE_TYPE_TUPLE)
+#define BOOST_PP_LOCAL_LIMITS (0, BOOST_PP_TUPLE_SIZE(CPU_PRIMITIVE_NATIVE_TYPE_TUPLE) - 1)
+#define BOOST_PP_LOCAL_MACRO(i) SPECIALIZE_GET_DATA_TYPE_TUPLE(CPU_PRIMITIVE_NATIVE_TYPE_TUPLE, i)
+#include BOOST_PP_LOCAL_ITERATE()
+
+// SPECIALIZE_GET_DATA_TYPE_TUPLE(CPU_PRIMITIVE_NATIVE_TYPE_TUPLE, 0)
+
 }  // namespace fineflow
-#endif  // !fineflow_CORE_COMMON_DATA_TYPE_H_
+template <>
+struct fmt::formatter<fineflow::DataType> {
+  static constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.end(); }
+  template <typename FormatContext>
+  auto format(const fineflow::DataType& dtype, FormatContext& ctx) const -> decltype(ctx.out()) {
+    return fmt::format_to(ctx.out(), fineflow::DataType_Name(dtype).substr(1));
+  }
+};
+#endif  // fineflow_CORE_COMMON_DATA_TYPE_H_

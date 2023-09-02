@@ -2,12 +2,31 @@
 #define FINEFLOW_API_PYTHON_PY_TENSOR_H_
 #include <memory>
 
-#include "fineflow/core/tensor.h"
+#include "fineflow/core/blob_tensor.h"
+#include "fineflow/core/common/device_type.pb.h"
+#include "fineflow/core/cpu/cpu_tensor.h"
 namespace fineflow::python_api {
 
 class Tensor final {
 private:
-  std::shared_ptr<fineflow::Tensor> tensor_;
+  BlobTensorPtr tensor_;
+  Tensor() = default;
+  Tensor(BlobTensor* tensor) : tensor_(tensor) {}
+
+public:
+  Tensor(const BlobTensorPtr& tensor) : tensor_(tensor) {}
+  Tensor(BlobTensorPtr&& tensor) : tensor_(std::move(tensor)) {}
+  static Tensor New(DeviceType device, uint64_t size, DataType dtype = DataType::kFloat) {
+    if (device == kCPU) {
+      return Tensor(new CpuTensor(dtype, size));
+    }
+    return Tensor();
+  }
+  inline const BlobTensor* operator->() const { return tensor_.get(); }
+  inline BlobTensor* operator->() { return tensor_.get(); }
+  inline const BlobTensorPtr& ptr() const { return tensor_; }
+  inline operator const BlobTensorPtr&() const { return tensor_; }
+  inline operator BlobTensorPtr&() { return tensor_; }
 };
 
 }  // namespace fineflow::python_api

@@ -1,13 +1,25 @@
 #ifndef FINEFLOW_CORE_TENSOR_H_
 #define FINEFLOW_CORE_TENSOR_H_
 #include <iostream>
-
+// #include <cstdlib>
 #include "fineflow/core/common/data_type.h"
-
+#include "fineflow/core/common/log.h"
 namespace fineflow {
 
-using Shape = std::vector<int>;
-using Stride = std::vector<int>;
+using Shape = std::vector<ssize_t>;
+using Stride = std::vector<ssize_t>;
+inline int64_t GetElementCount(const Shape& shape) {
+  return std::accumulate(shape.begin(), shape.end(), 1L, std::multiplies<>());
+}
+inline Stride GetCompactStride(const Shape& shape) {
+  ssize_t stride = 1;
+  Stride ret(shape.size(), 0);
+  for (int i = shape.size() - 1; i >= 0; --i) {
+    ret[i] = stride;
+    stride *= shape[i];
+  }
+  return ret;
+}
 class Tensor {
 public:
 #pragma GCC diagnostic push
@@ -15,7 +27,7 @@ public:
   // NOTE: Performance will be degraded if the destructor is virtual.
   //       So please do NOT implement custom destructor in any child classes of user_op::Tensor,
   //       and every fields of child classes should be of POD type.
-  ~Tensor() = default;
+  virtual ~Tensor() = default;
 #pragma GCC diagnostic pop
 
   [[nodiscard]] virtual const Shape& shape() const = 0;
@@ -28,9 +40,7 @@ public:
   [[nodiscard]] virtual const void* rawPtr() const = 0;
   virtual void* rawPtrMut() = 0;
 
-  [[nodiscard]] int64_t elementCount() const {
-    return std::accumulate(shape().begin(), shape().end(), 1L, std::multiplies<>());
-  }
+  [[nodiscard]] int64_t elementCount() const { return GetElementCount(shape()); }
   template <typename T = void>
   const T* castPtr() const {
     checkDataType<T>();
@@ -48,8 +58,8 @@ protected:
   void checkDataType() const {
     if (!static_cast<bool>(std::is_same_v<T, void>) && !static_cast<bool>(std::is_same_v<T, char>) &&
         dtype() != DataType::kChar && dtype() != GetDataType<T>::value) {
-      std::cout << "tensor data_type mismatched. value: " << DataType_Name(dtype())
-                << ", template T:" << DataType_Name(GetDataType<T>::value) << std::endl;
+      LOG(err) << "tensor data_type mismatched. value: " << DataType_Name(dtype())
+               << ", template T:" << DataType_Name(GetDataType<T>::value);
     }
   }
 };

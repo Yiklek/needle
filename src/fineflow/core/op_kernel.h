@@ -2,16 +2,19 @@
 #define FINEFLOW_CORE_OP_KERNEL_H_
 #include <iostream>
 
+#include "fineflow/core/blob_tensor.h"
+#include "fineflow/core/common/device_type.pb.h"
 #include "fineflow/core/common/hash_container.h"
+#include "fineflow/core/common/registry_manager.hpp"
 #include "fineflow/core/common/result.hpp"
 #include "fineflow/core/common/util.h"
-#include "fineflow/core/tensor.h"
+
 namespace fineflow {
 
 class KernelComputeContext {
 public:
   [[nodiscard]] std::string opName() const { return std::string(); }
-  Ret<std::shared_ptr<Tensor>> fetchTensor(const std::string& name, int32_t index) {
+  Ret<std::shared_ptr<BlobTensor>> fetchTensor(const std::string& name, int32_t index) {
     auto it = arg2tensor_.find({name, index});
     if (it != arg2tensor_.end()) {
       return it->second;
@@ -21,7 +24,7 @@ public:
 
 private:
 public:
-  HashMap<std::pair<std::string, int32_t>, std::shared_ptr<Tensor>> arg2tensor_;
+  HashMap<std::pair<std::string, int32_t>, std::shared_ptr<BlobTensor>> arg2tensor_;
 };
 
 class OpKernel {
@@ -43,7 +46,7 @@ public:
   // }
 
   // virtual void Compute(KernelComputeContext* ctx, OpKernelState*, const OpKernelCache*) const { Compute(ctx); }
-  virtual void compute(KernelComputeContext* ctx) const { std::cout << ctx->opName() << " :UNIMPLEMENTED"; }
+  virtual void compute(KernelComputeContext* ctx) const { LOG(err) << ctx->opName() << " :UNIMPLEMENTED"; }
   // virtual void InferShape(KernelInferContext* ctx) const;
   // virtual bool AlwaysComputeWhenAllOutputsEmpty() const = 0;
   // virtual bool IsKernelLaunchSynchronized() const { return true; }
@@ -70,5 +73,10 @@ OpKernel* NewOpKernel(Args&&... args) {
   //                                              decltype(&T::InitOpKernelCacheWithFlags)>::value);
   return ptr;
 }
+template <class T>
+using KernelRegistryMgr = RegistryMgr<DeviceType, std::unique_ptr<T>>;
+
+#define REGISTER_KERNEL(device, kernel_factory_type) \
+  REGISTER_KEY_VALUE(device, std::make_unique<kernel_factory_type>());
 }  // namespace fineflow
 #endif  // !fineflow_CORE_OP_KERNEL_H_

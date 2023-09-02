@@ -1,7 +1,8 @@
+// #include "fineflow/core/common/auto_register.hpp"
 #include "fineflow/core/kernels/add_kernel.h"
 
-#include "fineflow/core/common/auto_register.hpp"
 #include "fineflow/core/common/device_type.pb.h"
+#include "fineflow/core/common/registry_manager.hpp"
 #include "fineflow/core/op_kernel_factory.h"
 namespace fineflow {
 
@@ -41,6 +42,10 @@ std::unique_ptr<AddKernel> AddKernelFactory::create(DataType dtype) {
   return NewKernalFromHandlers(new_add_handle, dtype);
 };
 namespace {
-REGISTER_CLASS(DeviceType, DeviceType::kCPU, AddKernelFactory, AddKernelFactory);
-}
+// REGISTER_CLASS(DeviceType, DeviceType::kCPU, AddKernelFactory, AddKernelFactory);
+REGISTER_KERNEL(DeviceType::kCPU, AddKernelFactory);
+// REGISTER_KEY_WITH_CLASS(DeviceType, std::function<AddKernelFactory*()>, DeviceType::kCPU).setValue([] {
+//   return new AddKernelFactory();
+// });
+}  // namespace
 }  // namespace fineflow

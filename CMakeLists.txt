@@ -21,16 +21,20 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 message(STATUS ${__pybind_path})
 find_package(pybind11 PATHS ${__pybind_path})
+include(Pybind11)
 
-set(CMAKE_CXX_STANDARD 17)
+# set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_VISIBILITY_PRESET "hidden")
 
+set(CXX_STANDARD_NAME "c++${CMAKE_CXX_STANDARD}")
+
 if(NOT MSVC)
-  set(CMAKE_CXX_FLAGS "-std=c++17 ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-std=${CXX_STANDARD_NAME} ${CMAKE_CXX_FLAGS}")
 else()
-  set(CMAKE_CXX_FLAGS "/std:c++17 ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "/std:${CXX_STANDARD_NAME} ${CMAKE_CXX_FLAGS}")
 endif()
-set(CMAKE_CUDA_FLAGS "-std=c++17 ${CMAKE_CUDA_FLAGS}")
+set(CMAKE_CUDA_FLAGS "-std=${CXX_STANDARD_NAME} ${CMAKE_CUDA_FLAGS}")
 
 set(PYTHON_MODULE_PATH needle/backend_ndarray)
 
@@ -52,23 +56,30 @@ install(TARGETS ndarray_backend_cpu LIBRARY DESTINATION ${PYTHON_MODULE_PATH}
 include(FetchFmt)
 include(FetchProtobuf)
 include(FetchExpected)
+include(FetchSpdlog)
+include(FetchBoostPreprocessor)
 
 fetch_fmt()
 fetch_protobuf()
 fetch_expected()
+fetch_spdlog()
+fetch_boost_preprocessor()
+
+# include(CppModules)
 
 set(NEEDLE_THIRD_COMMON_LIBS "")
 list(APPEND NEEDLE_THIRD_COMMON_LIBS tl::expected)
 list(APPEND NEEDLE_THIRD_COMMON_LIBS fmt::fmt)
 # list(APPEND NEEDLE_THIRD_COMMON_LIBS range-v3)
-# list(APPEND NEEDLE_THIRD_COMMON_LIBS spdlog::spdlog_header_only)
+list(APPEND NEEDLE_THIRD_COMMON_LIBS spdlog::spdlog_header_only)
+list(APPEND NEEDLE_THIRD_COMMON_LIBS Boost::preprocessor)
 
 add_library(ThirdCommon INTERFACE)
 target_link_libraries(ThirdCommon INTERFACE ${NEEDLE_THIRD_COMMON_LIBS})
 
-add_library(proto-objects 
-    OBJECT 
-    "src/fineflow/core/common/data_type.proto" 
+add_library(proto-objects
+    OBJECT
+    "src/fineflow/core/common/data_type.proto"
     "src/fineflow/core/common/error.proto"
     "src/fineflow/core/common/device_type.proto"
 )
@@ -84,22 +95,48 @@ protobuf_generate(
     IMPORT_DIRS "src"
     PROTOC_OUT_DIR "${PROTO_BINARY_DIR}"
 )
-add_library(FineflowCommon 
+add_library(FineflowCommon
     "src/fineflow/core/common/error.cpp"
     "src/fineflow/core/common/error_util.cpp"
 )
 target_link_libraries(FineflowCommon PUBLIC proto-objects ThirdCommon)
 
-add_library(FineflowCore 
+add_library(FineflowCore
     "src/fineflow/core/tensor.cpp"
     "src/fineflow/core/op_kernel.cpp"
     "src/fineflow/core/kernels/add_kernel.cpp"
     "src/fineflow/core/cpu/cpu_tensor.cpp"
+    "src/fineflow/core/functional/impl/basic_functor.cpp"
 )
 target_link_libraries(FineflowCore PUBLIC proto-objects FineflowCommon)
+# add_library(FineflowFunctional
+#     # "src/fineflow/core/tensor.cpp"
+#     # "src/fineflow/core/op_kernel.cpp"
+#     # "src/fineflow/core/kernels/add_kernel.cpp"
+#     # "src/fineflow/core/cpu/cpu_tensor.cpp"
+# )
+# target_link_libraries(FineflowFunctional PUBLIC FineflowCore)
 
-pybind11_add_module(FineflowPyLib src/fineflow/api/python/fineflow.cpp)
-target_link_libraries(FineflowPyLib PUBLIC FineflowCore)
+
+add_pybind11_module(FineflowPyApi
+    SRCS src/fineflow/api/python/fineflow.cpp
+    DEPENDS FineflowCore
+)
+
+
+add_compile_definitions(FINEFLOW_SOURCE_DIR=${PROJECT_SOURCE_DIR} FINEFLOW_BINARY_DIR=${PROJECT_BINARY_DIR})
+
+add_executable(run run.cpp)
+target_link_libraries(run PUBLIC FineflowCore)
+
+# add_library(foo)
+# target_sources(
+#     foo
+#     PRIVATE
+#     FILE_SET cxx_modules TYPE CXX_MODULES
+#     FILES foo.cpp
+# )
+# target_compile_features(foo PUBLIC cxx_std_20)
 
 # ##############################################################################
 # CUDA BACKEND ###
