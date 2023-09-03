@@ -12,9 +12,9 @@ inline To Map(From f) {
   return f;
 }
 
-template <class From = const python_api::Tensor &, class To = const BlobTensorPtr &,
+template <class From = const python_api::Tensor &,
           class = std::enable_if_t<std::is_same_v<From, const python_api::Tensor &>>>
-inline To Map(const python_api::Tensor &f) {
+inline const BlobTensorPtr &Map(const python_api::Tensor &f) {
   return f.ptr();
 };
 
