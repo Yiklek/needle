@@ -5,6 +5,7 @@
 #include "fineflow/api/python/py_tensor.h"
 #include "fineflow/core/common/error_util.h"
 #include "fineflow/core/common/result.hpp"
+#include "fineflow/core/functional.h"
 namespace fineflow::python_api {
 
 template <class T>
@@ -12,7 +13,7 @@ struct MapRetType : public type_identity<T> {};
 
 template <>
 struct MapRetType<python_api::Tensor> {
-  using type = Ret<BlobTensorPtr>;
+  using type = BlobTensorPtr;
 };
 
 template <class T>
@@ -61,24 +62,19 @@ inline auto MapArgs(Args... args) {
 }
 
 template <class R, class... Args>
-struct PyFunctor {
-  explicit PyFunctor(const std::string &name) : name_(name) {}
-  explicit PyFunctor(std::string &&name) : name_(std::move(name)) {}
+using PyFunctorParent = Functor<Ret<MapRetTypeT<R>>, MapArgTypeT<Args>...>;
 
-  // core func type
-  using FuncType = std::function<MapRetTypeT<R>(MapArgTypeT<Args>...)>;
-  using RegistryFuncMgr = RegistryMgr<std::string, FuncType>;
+template <class R, class... Args>
+struct PyFunctor : public PyFunctorParent<R, Args...> {
+  using ParentType = PyFunctorParent<R, Args...>;
+  using Functor<Ret<MapRetTypeT<R>>, MapArgTypeT<Args>...>::Functor;
 
   R operator()(Args... args) {
     auto mapped_args = MapArgs<Args...>(args...);
-    TRY_ASSIGN_CATCH(auto f, RegistryFuncMgr::Get().GetValue(name_),
-                     { throw std::invalid_argument(fineflow::FormatErrorStr(e)); })
-    TRY_ASSIGN_CATCH(auto r, std::apply((*f), mapped_args), { throw std::runtime_error(fineflow::FormatErrorStr(e)); })
+    TRY_ASSIGN_CATCH(auto r, FF_PP_ALL(std::apply(static_cast<ParentType>(*this), mapped_args)),
+                     { throw std::runtime_error(fineflow::FormatErrorStr(e)); })
     return MapRet(r);
   }
-
-private:
-  std::string name_;
 };
 }  // namespace fineflow::python_api
 #endif  // FINEFLOW_API_PYTHON_PY_FUNCTOR_HPP_
