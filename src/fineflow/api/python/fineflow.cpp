@@ -11,12 +11,12 @@
 #include "pybind11/numpy.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
-namespace fineflow {
+namespace fineflow::python_api {
 namespace py = pybind11;
 struct DataTypeToFormat;
 struct FormatToDataType;
 
-auto ToNumpy(python_api::Tensor &a) {
+auto ToNumpy(Tensor &a) {
   auto numpy_strides = a->stride();
   auto elem_size = *DataTypeSizeRegistryMgr::Get().GetValue(a->dtype()).value();
   const auto &format = **RegistryMgr<DataType, std::string, DataTypeToFormat>::Get().GetValue(a->dtype());
@@ -30,7 +30,7 @@ auto ToNumpy(python_api::Tensor &a) {
 auto FromNumpy(const py::array &a, DeviceType devide_type) {
   auto b = a.request();
   const auto &dtype = **RegistryMgr<std::string, DataType, FormatToDataType>::Get().GetValue(b.format);
-  auto out = python_api::Tensor::New(devide_type, b.size * b.itemsize, dtype);
+  auto out = Tensor::New(devide_type, b.size * b.itemsize, dtype);
   std::memcpy(out->rawPtrMut(), b.ptr, out->bufferSize());
   auto elem_size = *RegistryMgr<DataType, size_t>::Get().GetValue(dtype).value();
   auto numpy_strides = b.strides;
@@ -42,8 +42,7 @@ auto FromNumpy(const py::array &a, DeviceType devide_type) {
 }
 
 PYBIND11_MODULE(PYBIND11_CURRENT_MODULE_NAME, m) {
-  auto ewise_add =
-      std::function(PyFunctor<python_api::Tensor, const python_api::Tensor &, const python_api::Tensor &>("add"));
+  auto ewise_add = std::function(PyFunctor<Tensor, const Tensor &, const Tensor &>("add"));
   m.attr("__device_name__") = "cpu_fine";
   // m.attr("__tile_size__") = TILE;
 
@@ -56,14 +55,13 @@ PYBIND11_MODULE(PYBIND11_CURRENT_MODULE_NAME, m) {
       .value("none", DeviceType::kInvalidDevice)
       .value("mock", DeviceType::kMockDevice);
 
-  py::class_<python_api::Tensor>(m, "Tensor")
-      .def(py::init([](uint64_t size) { return python_api::Tensor::New(DeviceType::kCPU, size); }),
+  py::class_<Tensor>(m, "Tensor")
+      .def(py::init([](uint64_t size) { return Tensor::New(DeviceType::kCPU, size); }),
            py::return_value_policy::take_ownership)
-      .def(py::init(
-               [](uint64_t size, DataType dtype) { return python_api::Tensor::New(DeviceType::kCPU, size, dtype); }),
+      .def(py::init([](uint64_t size, DataType dtype) { return Tensor::New(DeviceType::kCPU, size, dtype); }),
            py::return_value_policy::take_ownership)
-      .def("ptr", [](python_api::Tensor &self) { return reinterpret_cast<size_t>(self->castPtr()); })
-      .def_property_readonly("size", [](python_api::Tensor &self) { return self->bufferSize(); })
+      .def("ptr", [](Tensor &self) { return reinterpret_cast<size_t>(self->castPtr()); })
+      .def_property_readonly("size", [](Tensor &self) { return self->bufferSize(); })
       .def("to_numpy", ToNumpy);
 
   m.def("to_numpy", ToNumpy);
@@ -88,4 +86,4 @@ namespace {
 #include BOOST_PP_LOCAL_ITERATE()
 
 }  // namespace
-}  // namespace fineflow
+}  // namespace fineflow::python_api
