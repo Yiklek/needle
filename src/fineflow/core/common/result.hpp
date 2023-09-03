@@ -15,15 +15,21 @@ inline Failure<E> Fail(E&& e) {
 
 struct Ok {
   template <class T>
-  inline operator Ret<T>() {
+  inline operator Ret<T>() {  // NOLINT
     return {};
   }
 };
+#ifdef DEBUG
+#define FF_PP_STACK_FUNC __PRETTY_FUNCTION__
+#else
+#define FF_PP_STACK_FUNC __FUNCTION__
+#endif  // DEBUG
+
 #define RET_ERROR_ADD_STACKFRAME(error, error_msg)                                                         \
   (error).addStackFrame([](const char* function) {                                                         \
     thread_local static auto frame = ::fineflow::ErrorStackFrame(__FILE__, __LINE__, function, error_msg); \
     return frame;                                                                                          \
-  }(__FUNCTION__))
+  }(FF_PP_STACK_FUNC))
 
 #define CHECK_OR_RETURN_INTERNAL(expr, error_msg) \
   if (!(expr)) return RET_ERROR_ADD_STACKFRAME(Error::CheckFailedError(), error_msg)
@@ -66,23 +72,24 @@ struct Ok {
 
 #define TRY_ASSIGN_CATCH_IMPL(result, lhs, rexpr, catch_exprs, stack_error_msg)     \
   TRY_CATCH_IMPL(result, FF_PP_ALL(rexpr), FF_PP_ALL(catch_exprs), stack_error_msg) \
-  lhs = *std::move((result));
+  lhs = *std::move((result));  // NOLINT
+
+#define RET_NAME FF_PP_JOIN(_ret, __COUNTER__, __LINE__)
 
 #define TRY_ASSIGN(lhs, rexpr) \
   TRY_ASSIGN_CATCH_IMPL(       \
-      FF_PP_CAT(_result_or_value, __COUNTER__), lhs, rexpr, { return e; }, FF_PP_STRINGIZE(TRY_ASSIGN(lhs, rexpr)))
+      RET_NAME, lhs, rexpr, { return e; }, FF_PP_STRINGIZE(TRY_ASSIGN(lhs, rexpr)))
 
-#define TRY_ASSIGN_CATCH(lhs, rexpr, catch_exprs)                                                                \
-  TRY_ASSIGN_CATCH_IMPL(FF_PP_CAT(_result_or_value, __COUNTER__), lhs, FF_PP_ALL(rexpr), FF_PP_ALL(catch_exprs), \
+#define TRY_ASSIGN_CATCH(lhs, rexpr, catch_exprs)                                \
+  TRY_ASSIGN_CATCH_IMPL(RET_NAME, lhs, FF_PP_ALL(rexpr), FF_PP_ALL(catch_exprs), \
                         FF_PP_STRINGIZE(TRY_ASSIGN_CATCH(lhs, rexpr, ...)))
 
-#define TRY_CATCH(rexpr, catch_exprs)                                                                \
-  TRY_CATCH_IMPL(FF_PP_CAT(_result_or_value, __COUNTER__), FF_PP_ALL(rexpr), FF_PP_ALL(catch_exprs), \
-                 FF_PP_STRINGIZE(TRY_CATCH(rexpr, ...)))
+#define TRY_CATCH(rexpr, catch_exprs) \
+  TRY_CATCH_IMPL(RET_NAME, FF_PP_ALL(rexpr), FF_PP_ALL(catch_exprs), FF_PP_STRINGIZE(TRY_CATCH(rexpr, ...)))
 
 #define TRY(rexpr) \
   TRY_CATCH_IMPL(  \
-      FF_PP_CAT(_result_or_value, __COUNTER__), rexpr, { return e; }, FF_PP_STRINGIZE(TRY(rexpr)))
+      RET_NAME, rexpr, { return e; }, FF_PP_STRINGIZE(TRY(rexpr)))
 
 }  // namespace fineflow
 #endif

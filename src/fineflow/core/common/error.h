@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/strings/match.h"
 #include "fineflow/core/common/error.pb.h"
 #include "fineflow/core/common/hash.hpp"
 #include "fineflow/core/common/preprocess.h"
@@ -15,16 +16,14 @@ inline std::string RemoveProjectPathPrefix(const std::string& filename) {
 #if defined(FINEFLOW_SOURCE_DIR) && defined(FINEFLOW_BINARY_DIR)
   std::string project_path = FF_PP_STRINGIZE(FINEFLOW_SOURCE_DIR);
   std::string project_build_path = FF_PP_STRINGIZE(FINEFLOW_BINARY_DIR);
-  if (filename.rfind(project_build_path, 0) == 0) {
+  if (absl::StartsWith(filename, project_build_path)) {
     return std::filesystem::relative(filename, project_build_path);
-  } else if (filename.rfind(project_path, 0) == 0) {
-    return std::filesystem::relative(filename, project_path);
-  } else {
-    return filename;
   }
-#else
-  return filename;
+  if (absl::StartsWith(filename, project_path)) {
+    return std::filesystem::relative(filename, project_path);
+  }
 #endif
+  return filename;
 }
 
 class ErrorStackFrame final {
@@ -105,7 +104,7 @@ public:
   const ErrorProto* operator->() const { return stacked_error_->errorProto().get(); }
   ErrorProto* operator->() { return stacked_error_->errorProtoMut(); }
   template <class T>
-  inline operator Maybe<T, Error>() {
+  inline operator Maybe<T, Error>() {  // NOLINT
     return Failure<Error>(std::move(*this));
   }
   void assign(const Error& other) { stacked_error_ = other.stacked_error_; }

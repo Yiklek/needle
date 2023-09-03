@@ -126,6 +126,9 @@ add_pybind11_module(FineflowPyApi
 
 
 add_compile_definitions(FINEFLOW_SOURCE_DIR=${PROJECT_SOURCE_DIR} FINEFLOW_BINARY_DIR=${PROJECT_BINARY_DIR})
+if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
+    add_compile_definitions(DEBUG)
+endif()
 
 # add_executable(run run.cpp)
 # target_link_libraries(run PUBLIC FineflowCore)

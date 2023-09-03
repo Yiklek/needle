@@ -22,14 +22,13 @@ public:
   template <class KeyT = Key, class ValueT = Value, class = std::enable_if_t<std::is_same_v<KeyT, Key>>,
             class = std::enable_if_t<std::is_same_v<ValueT, Value>>>
   Ret<void> Register(KeyT&& key, ValueT&& value) {
-    LOG(trace) << __PRETTY_FUNCTION__;
-    CHECK_OR_RETURN(result_.emplace(std::forward<KeyT>(key), std::forward<ValueT>(value)).second);
+    CHECK_OR_RETURN(result_.emplace(std::forward<KeyT>(key), std::forward<ValueT>(value)).second)
+        << "Register key: " << key << " failed.";
     return Ok();
   }
   Ret<const Value* const> GetValue(const Key& key) {
-    LOG(trace) << __PRETTY_FUNCTION__;
     auto it = result_.find(key);
-    CHECK_OR_RETURN(it != result_.end()) << "Value for key:(" << key << ") not found";
+    CHECK_OR_RETURN(it != result_.end()) << "RegistryMgr Value for key:(" << key << ") not found. ";
     return &(it->second);
   }
   bool IsRegistered(const Key& key) { return result_.count(key) != 0; }
