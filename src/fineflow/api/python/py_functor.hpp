@@ -7,46 +7,79 @@
 #include "fineflow/core/common/result.hpp"
 namespace fineflow::python_api {
 
-template <class From, class To = From>
-inline To MapArg(From f) {
+template <class T>
+struct MapRetType : public type_identity<T> {};
+
+template <>
+struct MapRetType<python_api::Tensor> {
+  using type = Ret<BlobTensorPtr>;
+};
+
+template <class T>
+using MapRetTypeT = typename MapRetType<T>::type;
+
+template <class T>
+struct MapArgType : public type_identity<T> {};
+
+template <>
+struct MapArgType<const Tensor &> {
+  using type = const BlobTensorPtr &;
+};
+
+template <class T>
+using MapArgTypeT = typename MapArgType<T>::type;
+
+/**
+ * @brief Map python api arg to core functor arg
+ * If arg connot be convert automatically, template specialization must be implemented.
+ *
+ * @tparam From Python api type.
+ * @param f Python api arg.
+ * @return Core functor arg.
+ */
+template <class From>
+inline MapArgTypeT<From> MapArg(From f) {
   return f;
 }
 
-template <class From = const Tensor &, class = std::enable_if_t<std::is_same_v<From, const Tensor &>>>
-inline const BlobTensorPtr &MapArg(const Tensor &f) {
-  return f.ptr();
-};
+/**
+ * @brief Same to MapArg. But map core functor result to python api result.
+ * If arg connot be convert automatically, template specialization must be implemented.
+ *
+ * @tparam From Core functor type.
+ * @param f Core functor result.
+ * @return Python api result.
+ */
+template <class From>
+inline MapRetTypeT<From> MapRet(From f) {
+  return f;
+}
 
 template <class... Args>
 inline auto MapArgs(Args... args) {
-  return std::tuple<decltype(MapArg<Args>(args))...>(MapArg<Args>(args)...);
+  return std::tuple<MapArgTypeT<Args>...>(MapArg<Args>(args)...);
 }
 
 template <class R, class... Args>
 struct PyFunctor {
-  explicit PyFunctor(const std::string &name) : name(name) {}
-  explicit PyFunctor(std::string &&name) : name(std::move(name)) {}
+  explicit PyFunctor(const std::string &name) : name_(name) {}
+  explicit PyFunctor(std::string &&name) : name_(std::move(name)) {}
 
-  using FuncRet = IfElseT<std::is_same_v<R, python_api::Tensor>, Ret<BlobTensorPtr>, R>;
+  // core func type
+  using FuncType = std::function<MapRetTypeT<R>(MapArgTypeT<Args>...)>;
+  using RegistryFuncMgr = RegistryMgr<std::string, FuncType>;
 
-  template <std::size_t... I>
-  inline R apply(Args &&...args, std::index_sequence<I...>) {
+  R operator()(Args... args) {
     auto mapped_args = MapArgs<Args...>(args...);
-    using FuncArgs = decltype(mapped_args);
-    using FunctorType = std::function<FuncRet(typename std::tuple_element<I, FuncArgs>::type...)>;
-    using RegistryFunctorMgr = RegistryMgr<std::string, FunctorType>;
-    TRY_ASSIGN_CATCH(auto f, RegistryFunctorMgr::Get().GetValue(name),
+    TRY_ASSIGN_CATCH(auto f, RegistryFuncMgr::Get().GetValue(name_),
                      { throw std::invalid_argument(fineflow::FormatErrorStr(e.stackedError()).value()); })
     TRY_ASSIGN_CATCH(auto r, std::apply((*f), mapped_args),
                      { throw std::runtime_error(fineflow::FormatErrorStr(e.stackedError()).value()); })
-    return r;
+    return MapRet(r);
   }
 
-  R operator()(Args... args) {
-    auto indexes = std::make_index_sequence<sizeof...(args)>();
-    return apply(args..., indexes);
-  }
-  std::string name;
+private:
+  std::string name_;
 };
 }  // namespace fineflow::python_api
 #endif  // FINEFLOW_API_PYTHON_PY_FUNCTOR_HPP_

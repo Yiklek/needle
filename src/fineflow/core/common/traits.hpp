@@ -11,8 +11,8 @@ struct type_identity {
 using std::type_identity;
 #endif
 
-template <bool b, class TrueType, class FalseType>
-using IfElseT = std::conditional_t<b, TrueType, FalseType>;
+template <bool B, class TrueType, class FalseType>
+using IfElseT = std::conditional_t<B, TrueType, FalseType>;
 
 }  // namespace fineflow
 #endif  // FINEFLOW_CORE_COMMON_TRAITS_HPP_
