@@ -4,6 +4,7 @@
 
 #include "fineflow/api/python/py_tensor.h"
 #include "fineflow/core/common/error_util.h"
+#include "fineflow/core/common/result.hpp"
 namespace fineflow {
 
 template <class... Args>
@@ -16,19 +17,20 @@ inline auto MapFunctorType(Args &&...args) {
 template <class R, class... Args>
 struct PyFunctor {
   explicit PyFunctor(std::string name) : name(std::move(name)) {}
-  using FuncRet = IfElseT<std::is_same_v<R, python_api::Tensor>, BlobTensorPtr, R>;
+  using FuncRet = IfElseT<std::is_same_v<R, python_api::Tensor>, Ret<BlobTensorPtr>, R>;
 
   template <std::size_t... I>
   R apply(Args &&...args, std::index_sequence<I...>) {
-    const python_api::Tensor t1 = python_api::Tensor::New(DeviceType::kCPU, 1);
-    const python_api::Tensor t2 = python_api::Tensor::New(DeviceType::kCPU, 1);
-    auto _xxx = MapFunctorType(t1, t2);
+    LOG(debug) << __PRETTY_FUNCTION__;
     auto mapped_args = MapFunctorType<Args...>(args...);
     using FuncArgs = decltype(mapped_args);
     using FunctorType = std::function<FuncRet(typename std::tuple_element<I, FuncArgs>::type...)>;
-    TRY_CATCH(FF_PP_ALL(RegistryMgr<std::string, FunctorType>::Get().GetValue(name)),
-              { LOG(fineflow::err) << fineflow::FormatErrorStr(e.stackedError()).value(); })
-    return (**RegistryMgr<std::string, FunctorType>::Get().GetValue(name))(args...);
+    using RegistryFunctorMgr = RegistryMgr<std::string, FunctorType>;
+    TRY_ASSIGN_CATCH(auto f, RegistryFunctorMgr::Get().GetValue(name),
+                     { throw std::invalid_argument(fineflow::FormatErrorStr(e.stackedError()).value()); })
+    TRY_ASSIGN_CATCH(auto r, (*f)(args...),
+                     { throw std::runtime_error(fineflow::FormatErrorStr(e.stackedError()).value()); })
+    return r;
   }
   R operator()(Args... args) {
     auto indexes = std::make_index_sequence<sizeof...(args)>();

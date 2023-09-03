@@ -56,17 +56,6 @@ struct Ok {
   CHECK_OR_RETURN_INTERNAL((lhs) != (rhs), FF_PP_STRINGIZE(CHECK_NE_OR_RETURN(lhs, rhs))) \
       << "Check failed: (" << (lhs) << " != " << (rhs) << ") " << Error::kOverrideThenMergeMessage
 
-#define TRY_ASSIGN_IMPL(result, lhs, rexpr)                                                                \
-  /*NOLINTNEXTLINE*/                                                                                       \
-  auto result = (rexpr);                                                                                   \
-  if (!(result).has_value()) {                                                                             \
-    return RET_ERROR_ADD_STACKFRAME(std::move((result)).error(), FF_PP_STRINGIZE(TRY_ASSIGN(lhs, rexpr))); \
-  }                                                                                                        \
-  /*NOLINTNEXTLINE*/                                                                                       \
-  lhs = *std::move((result))
-
-#define TRY_ASSIGN(lhs, rexpr) TRY_ASSIGN_IMPL(FF_PP_CAT(_result_or_value, __COUNTER__), lhs, rexpr)
-
 #define TRY_CATCH_IMPL(result, rexpr, catch_exprs, stack_error_msg)       \
   /*NOLINTNEXTLINE*/                                                      \
   auto result = (rexpr);                                                  \
@@ -75,13 +64,21 @@ struct Ok {
     catch_exprs                                                           \
   }
 
+#define TRY_ASSIGN_CATCH_IMPL(result, lhs, rexpr, catch_exprs, stack_error_msg)     \
+  TRY_CATCH_IMPL(result, FF_PP_ALL(rexpr), FF_PP_ALL(catch_exprs), stack_error_msg) \
+  lhs = *std::move((result));
+
+#define TRY_ASSIGN(lhs, rexpr) \
+  TRY_ASSIGN_CATCH_IMPL(       \
+      FF_PP_CAT(_result_or_value, __COUNTER__), lhs, rexpr, { return e; }, FF_PP_STRINGIZE(TRY_ASSIGN(lhs, rexpr)))
+
+#define TRY_ASSIGN_CATCH(lhs, rexpr, catch_exprs)                                                                \
+  TRY_ASSIGN_CATCH_IMPL(FF_PP_CAT(_result_or_value, __COUNTER__), lhs, FF_PP_ALL(rexpr), FF_PP_ALL(catch_exprs), \
+                        FF_PP_STRINGIZE(TRY_ASSIGN_CATCH(lhs, rexpr, ...)))
+
 #define TRY_CATCH(rexpr, catch_exprs)                                                                \
   TRY_CATCH_IMPL(FF_PP_CAT(_result_or_value, __COUNTER__), FF_PP_ALL(rexpr), FF_PP_ALL(catch_exprs), \
                  FF_PP_STRINGIZE(TRY_CATCH(rexpr, ...)))
-
-#define TRY_IMPL(result, rexpr) \
-  TRY_CATCH_IMPL(               \
-      result, rexpr, { return e; }, FF_PP_STRINGIZE(TRY(rexpr)))
 
 #define TRY(rexpr) \
   TRY_CATCH_IMPL(  \

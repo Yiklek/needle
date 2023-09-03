@@ -43,8 +43,6 @@ using DataTypeSizeRegistryMgr = RegistryMgr<DataType, size_t>;
 #define BOOST_PP_LOCAL_MACRO(i) SPECIALIZE_GET_DATA_TYPE_TUPLE(CPU_PRIMITIVE_NATIVE_TYPE_TUPLE, i)
 #include BOOST_PP_LOCAL_ITERATE()
 
-// SPECIALIZE_GET_DATA_TYPE_TUPLE(CPU_PRIMITIVE_NATIVE_TYPE_TUPLE, 0)
-
 }  // namespace fineflow
 template <>
 struct fmt::formatter<fineflow::DataType> {

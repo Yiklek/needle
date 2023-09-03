@@ -101,26 +101,27 @@ add_library(FineflowCommon
 )
 target_link_libraries(FineflowCommon PUBLIC proto-objects ThirdCommon)
 
+add_library(FineflowCoreFunctionalObj OBJECT
+    "src/fineflow/core/functional/impl/basic_functor.cpp"
+)
+
+target_link_libraries(FineflowCoreFunctionalObj PUBLIC FineflowCommon)
+
+add_library(FineflowCoreFunctional)
+target_link_libraries(FineflowCoreFunctional PUBLIC FineflowCoreFunctionalObj)
+
 add_library(FineflowCore
     "src/fineflow/core/tensor.cpp"
     "src/fineflow/core/op_kernel.cpp"
     "src/fineflow/core/kernels/add_kernel.cpp"
     "src/fineflow/core/cpu/cpu_tensor.cpp"
-    "src/fineflow/core/functional/impl/basic_functor.cpp"
 )
-target_link_libraries(FineflowCore PUBLIC proto-objects FineflowCommon)
-# add_library(FineflowFunctional
-#     # "src/fineflow/core/tensor.cpp"
-#     # "src/fineflow/core/op_kernel.cpp"
-#     # "src/fineflow/core/kernels/add_kernel.cpp"
-#     # "src/fineflow/core/cpu/cpu_tensor.cpp"
-# )
-# target_link_libraries(FineflowFunctional PUBLIC FineflowCore)
 
+target_link_libraries(FineflowCore PUBLIC FineflowCommon)
 
 add_pybind11_module(FineflowPyApi
     SRCS src/fineflow/api/python/fineflow.cpp
-    DEPENDS FineflowCore
+    DEPENDS FineflowCore FineflowCoreFunctionalObj
 )
 
 

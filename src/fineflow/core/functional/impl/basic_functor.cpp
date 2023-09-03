@@ -34,7 +34,7 @@ REGISTER_KEY(std::function<AddFunctorType>, std::string("add")).setValue(std::fu
 //   // private:
 //   //   std::vector<std::shared_ptr<OpExpr>> op_;
 // };
-BlobTensorPtr AddFunctor::operator()(const BlobTensorPtr& a, const BlobTensorPtr& b) {
+Ret<BlobTensorPtr> AddFunctor::operator()(const BlobTensorPtr& a, const BlobTensorPtr& b) {
   if (a->dtype() != b->dtype()) {
     auto e = fmt::format("Tensor a({}) and Tensor b({}) must be same dtype.", a->dtype(), b->dtype());
     SPDLOG_ERROR(e);
@@ -45,8 +45,9 @@ BlobTensorPtr AddFunctor::operator()(const BlobTensorPtr& a, const BlobTensorPtr
   ctx.arg2tensor_.insert({{"in", 0}, std::move(a)});
   ctx.arg2tensor_.insert({{"in", 1}, std::move(b)});
   ctx.arg2tensor_.insert({{"out", 0}, std::move(tc)});
-  auto& f = **KernelRegistryMgr<AddKernelFactory>::Get().GetValue(DeviceType::kCPU);
-  f->create(a->dtype())->compute(&ctx);
+  TRY_ASSIGN(auto f, KernelRegistryMgr<AddKernelFactory>::Get().GetValue(DeviceType::kCPU));
+  TRY_ASSIGN(auto kernel, (*f)->create(a->dtype()));
+  kernel->compute(&ctx);
   return tc;
 }
 
