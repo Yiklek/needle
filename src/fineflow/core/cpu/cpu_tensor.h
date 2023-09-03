@@ -12,7 +12,7 @@ public:
   CpuTensor(DataType dtype, void *buffer, uint64_t buffer_size, uint64_t offset = 0)
       : dtype_(dtype), buffer_(buffer), buffer_size_(buffer_size), offset_(offset) {}
 
-  CpuTensor(DataType dtype, Shape shape)
+  CpuTensor(DataType dtype, const Shape &shape)
       : CpuTensor(dtype, GetElementCount(shape) * **DataTypeSizeRegistryMgr::Get().GetValue(dtype), 0) {
     shape_ = shape;
     stride_ = GetCompactStride(shape);
@@ -30,7 +30,7 @@ public:
   }
   CpuTensor &operator=(const CpuTensor &other);
   CpuTensor &operator=(CpuTensor &&) noexcept;
-  ~CpuTensor() { release(); }
+  ~CpuTensor() override { release(); }
   [[nodiscard]] const Shape &shape() const override { return shape_; };
   Shape &shapeMut() override { return shape_; };
   [[nodiscard]] const Stride &stride() const override { return stride_; };
@@ -39,8 +39,8 @@ public:
   [[nodiscard]] const void *rawPtr() const override { return buffer_; };
   void *rawPtrMut() override { return buffer_; };
 
-  [[nodiscard]] const uint64_t bufferSize() const override { return buffer_size_; }
-  [[nodiscard]] const uint64_t &offset() const override { return offset_; }
+  [[nodiscard]] uint64_t bufferSize() const override { return buffer_size_; }
+  [[nodiscard]] uint64_t offset() const override { return offset_; }
   [[nodiscard]] uint64_t &offsetMut() override { return offset_; }
 
 private:

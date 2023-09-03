@@ -16,7 +16,7 @@ public:
 
 class AddKernelFactory final : public OpKernelFactory<AddKernelFactory, AddKernel> {
 public:
-  Ret<std::unique_ptr<AddKernel>> create(DataType dtype);
+  static Ret<std::unique_ptr<AddKernel>> create(DataType dtype);
 };
 }  // namespace fineflow
 #endif  // FINEFLOW_CORE_KERNELS_ADD_KERNEL_H_

@@ -4,9 +4,9 @@
 #include "fineflow/core/cpu/cpu_tensor.h"
 #include "fineflow/core/kernels/add_kernel.h"
 namespace fineflow {
-namespace details {
+namespace {
 REGISTER_KEY(std::function<AddFunctorType>, std::string("add")).setValue(std::function<AddFunctorType>(AddFunctor()));
-}  // namespace details
+}  // namespace
 // class AddFunctor {
 // public:
 //   AddFunctor() {
@@ -44,7 +44,7 @@ Ret<BlobTensorPtr> AddFunctor::operator()(const BlobTensorPtr& a, const BlobTens
   KernelComputeContext ctx;
   ctx.arg2tensor_.insert({{"in", 0}, std::move(a)});
   ctx.arg2tensor_.insert({{"in", 1}, std::move(b)});
-  ctx.arg2tensor_.insert({{"out", 0}, std::move(tc)});
+  ctx.arg2tensor_.insert({{"out", 0}, tc});
   TRY_ASSIGN(auto f, KernelRegistryMgr<AddKernelFactory>::Get().GetValue(DeviceType::kCPU));
   TRY_ASSIGN(auto kernel, (*f)->create(a->dtype()));
   kernel->compute(&ctx);

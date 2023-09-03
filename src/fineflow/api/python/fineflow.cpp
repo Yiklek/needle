@@ -18,23 +18,24 @@ struct FormatToDataType;
 
 auto ToNumpy(python_api::Tensor &a) {
   auto numpy_strides = a->stride();
-  auto elemSize = *DataTypeSizeRegistryMgr::Get().GetValue(a->dtype()).value();
-  auto &format = **RegistryMgr<DataType, std::string, DataTypeToFormat>::Get().GetValue(a->dtype());
+  auto elem_size = *DataTypeSizeRegistryMgr::Get().GetValue(a->dtype()).value();
+  const auto &format = **RegistryMgr<DataType, std::string, DataTypeToFormat>::Get().GetValue(a->dtype());
   std::transform(numpy_strides.begin(), numpy_strides.end(), numpy_strides.begin(),
-                 [&](auto &c) { return c * elemSize; });
-  return py::array(py::buffer_info(reinterpret_cast<void *>((uint8_t *)a->rawPtr() + a->offset() * elemSize), elemSize,
-                                   format, a->shape().size(), a->shape(), numpy_strides));
+                 [elem_size](auto &c) { return c * elem_size; });
+  return py::array(
+      py::buffer_info(reinterpret_cast<void *>(reinterpret_cast<uint8_t *>(a->rawPtrMut()) + a->offset() * elem_size),
+                      elem_size, format, a->shape().size(), a->shape(), numpy_strides));
 }
 
 auto FromNumpy(const py::array &a, DeviceType devide_type) {
   auto b = a.request();
-  auto &dtype = **RegistryMgr<std::string, DataType, FormatToDataType>::Get().GetValue(b.format);
+  const auto &dtype = **RegistryMgr<std::string, DataType, FormatToDataType>::Get().GetValue(b.format);
   auto out = python_api::Tensor::New(devide_type, b.size * b.itemsize, dtype);
   std::memcpy(out->rawPtrMut(), b.ptr, out->bufferSize());
-  auto elemSize = *RegistryMgr<DataType, size_t>::Get().GetValue(dtype).value();
+  auto elem_size = *RegistryMgr<DataType, size_t>::Get().GetValue(dtype).value();
   auto numpy_strides = b.strides;
   std::transform(numpy_strides.begin(), numpy_strides.end(), numpy_strides.begin(),
-                 [&](auto &c) { return c / elemSize; });
+                 [elem_size](auto &c) { return c / elem_size; });
   out->shapeMut() = b.shape;
   out->strideMut() = numpy_strides;
   return out;

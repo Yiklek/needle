@@ -4,10 +4,10 @@
 namespace fineflow {
 class BlobTensor : public Tensor {
 public:
-  [[nodiscard]] virtual const uint64_t bufferSize() const = 0;
-  [[nodiscard]] virtual const uint64_t& offset() const = 0;
+  [[nodiscard]] virtual uint64_t bufferSize() const = 0;
+  [[nodiscard]] virtual uint64_t offset() const = 0;
   [[nodiscard]] virtual uint64_t& offsetMut() = 0;
-  virtual ~BlobTensor() = default;
+  ~BlobTensor() override = default;
 };
 
 using BlobTensorPtr = std::shared_ptr<fineflow::BlobTensor>;

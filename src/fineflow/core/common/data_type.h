@@ -13,14 +13,14 @@ namespace fineflow {
 template <typename T, typename T2 = void>
 struct GetDataType;
 
-template <DataType type>
+template <DataType Type>
 struct DataTypeToClass;
 
 template <>
 struct GetDataType<void> : std::integral_constant<DataType, DataType::kChar> {};
 
-template <DataType type>
-using DataTypeToType = typename DataTypeToClass<type>::type;
+template <DataType Type>
+using DataTypeToType = typename DataTypeToClass<Type>::type;
 
 using DataTypeSizeRegistryMgr = RegistryMgr<DataType, size_t>;
 
@@ -48,8 +48,8 @@ template <>
 struct fmt::formatter<fineflow::DataType> {
   static constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.end(); }
   template <typename FormatContext>
-  auto format(const fineflow::DataType& dtype, FormatContext& ctx) const -> decltype(ctx.out()) {
-    return fmt::format_to(ctx.out(), fineflow::DataType_Name(dtype).substr(1));
+  auto format(const fineflow::DataType dtype, FormatContext& ctx) const -> decltype(ctx.out()) {
+    return fmt::format_to(ctx.out(), "{}", fineflow::DataType_Name(dtype).substr(1));
   }
 };
 #endif  // fineflow_CORE_COMMON_DATA_TYPE_H_
