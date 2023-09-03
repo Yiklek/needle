@@ -133,7 +133,7 @@ Error Error::CheckFailedError() {
 }
 
 std::string GetStackedErrorString(const std::shared_ptr<StackedError>& error) {
-  const auto& error_str = FormatErrorStr(error).transform_error([&](auto) { return error->debugString(); }).value();
+  auto error_str = FormatErrorStr(error);
   // const auto& error_str = maybe_error.GetDataAndStackedError(error->DebugString());
   // CHECK_NE(error->errorProto()->error_type_case(), ErrorProto::ERROR_TYPE_NOT_SET);
   return error_str;

@@ -6,6 +6,7 @@
 #include "fineflow/core/common/result.hpp"
 namespace fineflow {
 
-Ret<std::string> FormatErrorStr(const std::shared_ptr<StackedError>& error);
+std::string FormatErrorStr(const std::shared_ptr<StackedError>& error);
+inline std::string FormatErrorStr(const Error& error) { return FormatErrorStr(error.stackedError()); }
 }  // namespace fineflow
 #endif

@@ -72,9 +72,8 @@ struct PyFunctor {
   R operator()(Args... args) {
     auto mapped_args = MapArgs<Args...>(args...);
     TRY_ASSIGN_CATCH(auto f, RegistryFuncMgr::Get().GetValue(name_),
-                     { throw std::invalid_argument(fineflow::FormatErrorStr(e.stackedError()).value()); })
-    TRY_ASSIGN_CATCH(auto r, std::apply((*f), mapped_args),
-                     { throw std::runtime_error(fineflow::FormatErrorStr(e.stackedError()).value()); })
+                     { throw std::invalid_argument(fineflow::FormatErrorStr(e)); })
+    TRY_ASSIGN_CATCH(auto r, std::apply((*f), mapped_args), { throw std::runtime_error(fineflow::FormatErrorStr(e)); })
     return MapRet(r);
   }
 

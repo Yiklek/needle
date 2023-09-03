@@ -28,7 +28,6 @@ Ret<std::string> ShortenMsg(std::string str) {
   if (str.empty()) {
     return str;
   }
-  // strip space when JUST(  xx  );
   str = StripSpace(str);
   if (str.size() < num_character_threshold) {
     return str;
@@ -95,13 +94,12 @@ std::string FormatFunctionOfStackFrame(const std::string& function) {
 }
 
 // msg in stack frame
-Ret<std::string> FormatMsgOfStackFrame(std::string error_msg, bool is_last_stackFrame) {
+std::string FormatMsgOfStackFrame(std::string error_msg, bool is_last_stackFrame) {
   const bool debug_mode = true;
   // only shorten the message if it is not the last stack frame AND not in debug mode
   if (!is_last_stackFrame && !debug_mode) {
     Ret<std::string> r = ShortenMsg(error_msg);
-    error_msg = r.transform_error([](auto) { return "Failed ShortenMsg"; }).value();
-    // error_msg = r.value_or("");  // *JUST(ShortenMsg(error_msg));
+    error_msg = *r.transform_error([&](auto) { return error_msg; });
   }
   // error_msg of last stack frame come from "<<"
   if (is_last_stackFrame) {
@@ -132,7 +130,7 @@ Ret<std::string> FormatMsgOfErrorType(const std::shared_ptr<StackedError>& error
 
 }  // namespace details
 
-Ret<std::string> FormatErrorStr(const std::shared_ptr<StackedError>& error) {
+std::string FormatErrorStr(const std::shared_ptr<StackedError>& error) {
   std::stringstream ss;
   ss << error->errorProto()->msg();
   ss << error->errorProto()->frame_msg();
@@ -142,14 +140,12 @@ Ret<std::string> FormatErrorStr(const std::shared_ptr<StackedError>& error) {
     ss << details::FormatFileOfStackFrame(stack_frame.file()) << details::FormatLineOfStackFrame(stack_frame.line())
        << details::FormatFunctionOfStackFrame(stack_frame.function());
 
-    auto r = details::FormatMsgOfStackFrame(stack_frame.codeText(), iter == error->stackFrame().rend() - 1);
-    ss << r.transform_error([](auto) { return FF_PP_STRINGIZE(__FILE__, __LINE__); }).value();
+    ss << details::FormatMsgOfStackFrame(stack_frame.codeText(), iter == error->stackFrame().rend() - 1);
   }
   // Get msg from error type of error proto
-  auto r = details::FormatMsgOfErrorType(error);
-  std::string msg_of_error_type = r.transform_error([](auto) { return FF_PP_STRINGIZE(__FILE__, __LINE__); }).value();
-  if (!msg_of_error_type.empty()) {
-    ss << "\n" << msg_of_error_type;
+  auto r = *details::FormatMsgOfErrorType(error).transform_error([](auto) { return "unknown error."; });
+  if (!r.empty()) {
+    ss << std::endl << r;
   }
   return ss.str();
 }

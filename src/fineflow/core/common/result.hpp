@@ -82,10 +82,10 @@ struct Ok {
 
 #define TRY_ASSIGN_CATCH(lhs, rexpr, catch_exprs)                                \
   TRY_ASSIGN_CATCH_IMPL(RET_NAME, lhs, FF_PP_ALL(rexpr), FF_PP_ALL(catch_exprs), \
-                        FF_PP_STRINGIZE(TRY_ASSIGN_CATCH(lhs, rexpr, ...)))
+                        FF_PP_STRINGIZE(TRY_ASSIGN_CATCH(FF_PP_AL(lhs), FF_PP_ALL(rexpr), ...)))
 
 #define TRY_CATCH(rexpr, catch_exprs) \
-  TRY_CATCH_IMPL(RET_NAME, FF_PP_ALL(rexpr), FF_PP_ALL(catch_exprs), FF_PP_STRINGIZE(TRY_CATCH(rexpr, ...)))
+  TRY_CATCH_IMPL(RET_NAME, FF_PP_ALL(rexpr), FF_PP_ALL(catch_exprs), FF_PP_STRINGIZE(TRY_CATCH(FF_PP_ALL(rexpr), ...)))
 
 #define TRY(rexpr) \
   TRY_CATCH_IMPL(  \
