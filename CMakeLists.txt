@@ -127,8 +127,8 @@ add_pybind11_module(FineflowPyApi
 
 add_compile_definitions(FINEFLOW_SOURCE_DIR=${PROJECT_SOURCE_DIR} FINEFLOW_BINARY_DIR=${PROJECT_BINARY_DIR})
 
-add_executable(run run.cpp)
-target_link_libraries(run PUBLIC FineflowCore)
+# add_executable(run run.cpp)
+# target_link_libraries(run PUBLIC FineflowCore)
 
 # add_library(foo)
 # target_sources(
