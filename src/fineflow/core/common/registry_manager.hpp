@@ -9,7 +9,7 @@ namespace fineflow {
 template <class Key, class Value, class Type = void>
 class RegistryMgr {
 private:
-  RegistryMgr() {}
+  RegistryMgr() = default;
 
 public:
   RegistryMgr(RegistryMgr const&) = delete;
@@ -19,7 +19,6 @@ public:
     return mgr;
   }
 
-public:
   template <class KeyT = Key, class ValueT = Value, class = std::enable_if_t<std::is_same_v<KeyT, Key>>,
             class = std::enable_if_t<std::is_same_v<ValueT, Value>>>
   Ret<void> Register(KeyT&& key, ValueT&& value) {
@@ -30,10 +29,8 @@ public:
   Ret<const Value* const> GetValue(const Key& key) {
     LOG(trace) << __PRETTY_FUNCTION__;
     auto it = result_.find(key);
-    if (it != result_.end()) {
-      return &(it->second);
-    }
-    return Fail(Error::ValueNotFoundError() << "Value for key:(" << key << ") not found");
+    CHECK_OR_RETURN(it != result_.end()) << "Value for key:(" << key << ") not found";
+    return &(it->second);
   }
   bool IsRegistered(const Key& key) { return result_.count(key) != 0; }
 
@@ -50,7 +47,7 @@ protected:
   Value value_;
 
 public:
-  Registry(const Key& key) : key_(key) {}
+  explicit Registry(const Key& key) : key_(key) {}
   Key& key() { return key_; }
   Value& finish() { return value_; }
 
@@ -63,10 +60,10 @@ public:
 
 template <class Key, class Value, class Type = void>
 struct RegisterTrigger final {
-  RegisterTrigger(const Registry<Key, Value>& registry) {
+  RegisterTrigger(const Registry<Key, Value>& registry) {  // NOLINT
     RegistryMgr<Key, Value, Type>::Get().Register(registry.key(), registry.finish());
   }
-  RegisterTrigger(Registry<Key, Value>&& registry) {
+  RegisterTrigger(Registry<Key, Value>&& registry) {  // NOLINT
     RegistryMgr<Key, Value, Type>::Get().Register(std::move(registry.key()), std::move(registry.finish()));
   }
 };
