@@ -67,13 +67,55 @@ struct RegisterTrigger final {
   }
 };
 
-#define REGISTER_KEY_WITH_CLASS(class_key, class_value, key)                            \
-  static RegisterTrigger<class_key, class_value> FF_PP_JOIN(t, __COUNTER__, __LINE__) = \
-      Registry<class_key, class_value>((key))
+/**
+ * @brief Multiple registry helper
+ *
+ * Example:
+ * auto r = Register<>::New(1, 2, 3, 4)
+ * registers RegistryMgr<int, int, void> as
+ * 1 -> 2, 3 -> 4
+ */
+template <class Type = void>
+struct Register {
+  static constexpr std::size_t GroupSize = 2;
+  template <class... Args>
+  struct Impl {
+    static_assert(sizeof...(Args) % GroupSize == 0);
+    template <std::size_t I>
+    using ArgType = typename std::tuple_element<I, std::tuple<Args...>>::type;
 
-#define REGISTER_KEY_WITH_CLASS_T(class_key, class_value, class_type, key)                          \
-  static RegisterTrigger<class_key, class_value, class_type> FF_PP_JOIN(t, __COUNTER__, __LINE__) = \
-      Registry<class_key, class_value>((key))
+    explicit Impl(Args&&... args) {
+      auto indexes2 = std::make_index_sequence<sizeof...(Args) / GroupSize>();
+      RegisterAll(args..., indexes2);
+    }
+
+    template <std::size_t... I, std::size_t... I2>
+    inline void RegisterAll(Args... args, std::index_sequence<I2...>) {
+      (RegisterGroup<I2>(std::tuple(args...), std::make_index_sequence<GroupSize>()), ...);
+    }
+    template <std::size_t Group, std::size_t... I>
+    inline void RegisterGroup(std::tuple<Args...> args, std::index_sequence<I...>) {
+      RegistryMgr<ArgType<GroupSize * Group + I>..., Type>::Get().Register(
+          std::move(std::get<GroupSize * Group + I>(args))...);
+    }
+  };
+  Register() = delete;
+  template <class... Args>
+  static inline bool New(Args&&... args) {
+    Impl<Args...>(std::forward<Args>(args)...);
+    return true;
+  }
+};
+
+using RegisterVoid = Register<>;
+
+#define REGISTER_VAR_NAME FF_PP_JOIN(t, __LINE__, __COUNTER__)
+
+#define REGISTER_KEY_WITH_CLASS(class_key, class_value, key) \
+  static RegisterTrigger<class_key, class_value> REGISTER_VAR_NAME = Registry<class_key, class_value>((key))
+
+#define REGISTER_KEY_WITH_CLASS_T(class_key, class_value, class_type, key) \
+  static RegisterTrigger<class_key, class_value, class_type> REGISTER_VAR_NAME = Registry<class_key, class_value>((key))
 
 #define REGISTER_KEY(class_value, key) REGISTER_KEY_WITH_CLASS(decltype((key)), class_value, key)
 #define REGISTER_KEY_VALUE(key, value) \

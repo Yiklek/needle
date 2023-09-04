@@ -84,7 +84,7 @@ namespace {
 #define TYPE_NUMPY_FORMAT(type) py::format_descriptor<type>::format()
 #define TYPE_NUMPY_TUPLE(type, dtype) (dtype, TYPE_NUMPY_FORMAT(type))
 
-#define REGISTRE_NUMPY_FORMAT(type_proto, format)             \
+#define REGISTER_NUMPY_FORMAT(type_proto, format)             \
   REGISTER_KEY_VALUE_T(DataTypeToFormat, type_proto, format); \
   REGISTER_KEY_VALUE_T(FormatToDataType, format, type_proto);
 
@@ -92,10 +92,9 @@ namespace {
   FF_PP_FORWARD(REGISTRE_NUMPY_FORMAT, BOOST_PP_TUPLE_ENUM(FF_PP_FORWARD( \
                                            TYPE_NUMPY_TUPLE, BOOST_PP_TUPLE_ENUM(BOOST_PP_TUPLE_ELEM(i, tuple)))))
 
-// for i in [0, CPU_PRIMITIVE_NATIVE_TYPE_TUPLE)
-#define BOOST_PP_LOCAL_LIMITS (0, BOOST_PP_TUPLE_SIZE(CPU_PRIMITIVE_NATIVE_TYPE_TUPLE) - 1)
-#define BOOST_PP_LOCAL_MACRO(i) REGISTRE_NUMPY_FORMAT_TUPLE(CPU_PRIMITIVE_NATIVE_TYPE_TUPLE, i)
-#include BOOST_PP_LOCAL_ITERATE()
-
+#define FOR_REGISTER_NUMPY_FORMAT(i, _, elem) \
+  FF_PP_FORWARD(REGISTER_NUMPY_FORMAT, BOOST_PP_TUPLE_ENUM(FF_PP_FORWARD(TYPE_NUMPY_TUPLE, BOOST_PP_TUPLE_ENUM(elem))))
+BOOST_PP_SEQ_FOR_EACH(FOR_REGISTER_NUMPY_FORMAT, _, CPU_PRIMITIVE_NATIVE_TYPE_SEQ)
+#undef FOR_REGISTER_NUMPY_FORMAT
 }  // namespace
 }  // namespace fineflow::python_api
