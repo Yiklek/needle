@@ -178,7 +178,8 @@ private:
   enum MsgCollectingMode msg_collecting_mode_ {};
 };
 
-[[noreturn]] void ThrowError(const std::shared_ptr<StackedError>& error);
+void ThrowError(const std::shared_ptr<StackedError>& error);
+inline void ThrowError(const Error& error) { ThrowError(error.stackedError()); }
 const std::shared_ptr<StackedError>& ThreadLocalError();
 
 inline Error& operator<<(Error& error, Error::MsgCollectingMode mode) {

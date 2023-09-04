@@ -2,6 +2,7 @@
 #include "fineflow/api/python/py_tensor.h"
 #include "fineflow/core/common/device_type.pb.h"
 #include "fineflow/core/common/error_util.h"
+#include "fineflow/core/common/exception.h"
 #include "fineflow/core/common/registry_manager.hpp"
 #include "fineflow/core/common/result.hpp"
 #include "fineflow/core/common/types_tuple.h"
@@ -42,6 +43,17 @@ auto FromNumpy(const py::array &a, DeviceType devide_type) {
 }
 
 PYBIND11_MODULE(PYBIND11_CURRENT_MODULE_NAME, m) {
+  py::register_exception_translator([](std::exception_ptr p) {  // NOLINT
+    try {
+      if (p) std::rethrow_exception(p);
+    } catch (const TypeException &e) {
+      throw py::type_error(e.what());
+    } catch (const IndexException &e) {
+      throw py::index_error(e.what());
+    } catch (const NotImplementedException &e) {
+      PyErr_SetString(PyExc_NotImplementedError, e.what());
+    }
+  });
   auto ewise_add = std::function(PyFunctor<Tensor, const Tensor &, const Tensor &>("add"));
   m.attr("__device_name__") = "cpu_fine";
   // m.attr("__tile_size__") = TILE;

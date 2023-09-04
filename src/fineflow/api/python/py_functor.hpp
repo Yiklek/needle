@@ -71,8 +71,7 @@ struct PyFunctor : public PyFunctorParent<R, Args...> {
 
   R operator()(Args... args) {
     auto mapped_args = MapArgs<Args...>(args...);
-    TRY_ASSIGN_CATCH(auto r, FF_PP_ALL(std::apply(static_cast<ParentType>(*this), mapped_args)),
-                     { throw std::runtime_error(fineflow::FormatErrorStr(e)); })
+    TRY_ASSIGN_CATCH(auto r, FF_PP_ALL(std::apply(static_cast<ParentType>(*this), mapped_args)), { ThrowError(e); })
     return MapRet(r);
   }
 };

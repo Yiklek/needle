@@ -3,6 +3,10 @@
 #include <iostream>
 
 #include "fineflow/core/common/error_util.h"
+#include "fineflow/core/common/exception.h"
+#include "fmt/color.h"
+#include "fmt/format.h"
+
 namespace fineflow {
 
 StackedError::StackedError() : error_proto_(new ErrorProto()) {}
@@ -132,74 +136,44 @@ Error Error::CheckFailedError() {
   return error;
 }
 
-std::string GetStackedErrorString(const std::shared_ptr<StackedError>& error) {
-  auto error_str = FormatErrorStr(error);
-  // const auto& error_str = maybe_error.GetDataAndStackedError(error->DebugString());
-  // CHECK_NE(error->errorProto()->error_type_case(), ErrorProto::ERROR_TYPE_NOT_SET);
-  return error_str;
-}
+// inline std::string GetStackedErrorString(const std::shared_ptr<StackedError>& error) {
+//   auto error_str = FormatErrorStr(error);
+//   // const auto& error_str = maybe_error.GetDataAndStackedError(error->DebugString());
+//   // CHECK_NE(error->errorProto()->error_type_case(), ErrorProto::ERROR_TYPE_NOT_SET);
+//   return error_str;
+// }
 
 std::string GetErrorString(const std::shared_ptr<StackedError>& error) {
   std::string error_str;
-  if (true) {  // NOLINT
-    error_str = GetStackedErrorString(error);
-  } else {
-    error_str = error->errorProto()->msg();
-  }
+#ifdef DEBUG
+  error_str = FormatErrorStr(error);
+#else
+  error_str = error->errorProto()->msg();
+#endif
   if (error_str.empty()) {
     error_str = "<No error message>";
   }
   return error_str;
 }
 
-// void ThrowError(const std::shared_ptr<StackedError>& error) {
-//   std::string error_str;
-//   fmt::format_to(std::back_inserter(error_str), "{}: {}\n",
-//                  fmt::styled("Error", fmt::emphasis::bold | fmt::fg(fmt::color::red)), GetErrorString(error));
-//   // Append foreign stack trace (e.g. Python stack trace) when it is available.
-//   if (ForeignFrameThreadLocalGuard::Current().has_value()) {
-//     auto frame = *CHECK_JUST(ForeignFrameThreadLocalGuard::Current());
-//     if (!IsMainThread()) {
-//       if (auto* stack_getter = Singleton<ForeignStackGetter>::Get()) {
-//         fmt::format_to(std::back_inserter(error_str), fmt::emphasis::bold | fmt::fg(fmt::color::dark_orange),
-//                        "Related Python stack trace:");
-//         if (IsPythonStackGetterEnabledByDebugBuild()) {
-//           fmt::format_to(std::back_inserter(error_str),
-//                          " (You are seeing this stack trace because you compiled OneFlow with "
-//                          "CMAKE_BUILD_TYPE=Debug. If you want to see it even with other CMAKE_BUILD_TYPEs, "
-//                          "you can set ONEFLOW_DEBUG or ONEFLOW_PYTHON_STACK_GETTER to 1)");
-//         }
-//         fmt::format_to(std::back_inserter(error_str), "\n{}", stack_getter->GetFormattedStack(frame));
-//       } else {
-//         fmt::format_to(
-//             std::back_inserter(error_str), "You can set {} or {} to 1 to get the Python stack of the error.",
-//             fmt::styled("ONEFLOW_DEBUG", fmt::emphasis::bold | fmt::fg(fmt::color::dark_orange)),
-//             fmt::styled("ONEFLOW_PYTHON_STACK_GETTER", fmt::emphasis::bold | fmt::fg(fmt::color::dark_orange)));
-//       }
-//     }
-//   }
-//   *MutThreadLocalError() = error;
-//   if ((*error)->has_runtime_error()) {
-//     throw RuntimeException(error_str);
-//   }
-//   if ((*error)->has_type_error()) {
-//     throw TypeException(error_str);
-//   }
-//   if ((*error)->has_index_error()) {
-//     throw IndexException(error_str);
-//   }
-//   if ((*error)->has_unimplemented_error()) {
-//     throw NotImplementedException(error_str);
-//   }
-//   throw Exception(GetStackedErrorString(error));
-// }
+void ThrowError(const std::shared_ptr<StackedError>& error) {
+  std::string error_str;
+  fmt::format_to(std::back_inserter(error_str), "{}: {}",
+                 fmt::styled("Error", fmt::emphasis::bold | fmt::fg(fmt::color::red)), GetErrorString(error));
+  *MutThreadLocalError() = error;
+
+  if ((*error)->has_type_error()) {
+    throw TypeException(error_str);
+  }
+  if ((*error)->has_index_error()) {
+    throw IndexException(error_str);
+  }
+  if ((*error)->has_unimplemented_error()) {
+    throw NotImplementedException(error_str);
+  }
+  throw RuntimeException(error_str);
+}
 
 const std::shared_ptr<StackedError>& ThreadLocalError() { return *MutThreadLocalError(); }
-
-// const char* kOfBugIssueUploadPrompt =
-//     "This is a oneflow bug, please submit an issue at "
-//     "'https://github.com/Oneflow-Inc/oneflow/issues' including "
-//     "the log information of the error, the "
-//     "minimum reproduction code, and the system information.";
 
 }  // namespace fineflow
