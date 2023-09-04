@@ -14,12 +14,19 @@
 
 #define FF_PP_ALL(...) __VA_ARGS__
 
-#define FF_PP_JOIN_RESET "fineflow/core/common/pp/join_reset.h"
+#define FF_PP_JOIN_STATE_RET(state) BOOST_PP_TUPLE_ELEM(0, state)
+#define FF_PP_JOIN_STATE_SEP(state) BOOST_PP_TUPLE_ELEM(1, state)
+#define FF_PP_JOIN_NEXT_RET(state, x) \
+  BOOST_PP_CAT(FF_PP_JOIN_STATE_RET(state), BOOST_PP_CAT(FF_PP_JOIN_STATE_SEP(state), x))
+#define FF_PP_JOIN_STATE_NEXT_TUPLE(state, x) \
+  BOOST_PP_VARIADIC_TO_TUPLE(FF_PP_JOIN_NEXT_RET(state, x), FF_PP_JOIN_STATE_SEP(state))
+#define FF_PP_JOIN_START_TUPLE(sep, start, ...) BOOST_PP_VARIADIC_TO_TUPLE(start, sep)
 
-#include FF_PP_JOIN_RESET
-#define FF_PP_JOIN_I(s, state, x) BOOST_PP_CAT(state, BOOST_PP_CAT(FF_PP_JOIN_SEP, x))
-#define FF_PP_JOIN(...)                                                                          \
-  BOOST_PP_SEQ_FOLD_LEFT(FF_PP_JOIN_I, BOOST_PP_SEQ_HEAD(BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)), \
-                         BOOST_PP_SEQ_TAIL(BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__)))
+#define FF_PP_JOIN_I(s, state, x) FF_PP_JOIN_STATE_NEXT_TUPLE(state, x)
 
+#define FF_PP_JOIN(sep, ...)                                                                          \
+  FF_PP_JOIN_STATE_RET(BOOST_PP_SEQ_FOLD_LEFT(FF_PP_JOIN_I, FF_PP_JOIN_START_TUPLE(sep, __VA_ARGS__), \
+                                              BOOST_PP_SEQ_TAIL(BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))))
+
+#define FF_PP_JOIN_U(...) FF_PP_JOIN(_, __VA_ARGS__)
 #endif  // FINEFLOW_CORE_COMMON_PREPROCESS_H_

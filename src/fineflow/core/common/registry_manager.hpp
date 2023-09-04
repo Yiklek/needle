@@ -109,7 +109,7 @@ struct Register {
 
 using RegisterVoid = Register<>;
 
-#define REGISTER_VAR_NAME FF_PP_JOIN(t, __LINE__, __COUNTER__)
+#define REGISTER_VAR_NAME FF_PP_JOIN_U(t, __LINE__, __COUNTER__)
 
 #define REGISTER_KEY_WITH_CLASS(class_key, class_value, key) \
   static RegisterTrigger<class_key, class_value> REGISTER_VAR_NAME = Registry<class_key, class_value>((key))

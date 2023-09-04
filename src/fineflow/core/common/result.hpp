@@ -74,7 +74,7 @@ struct Ok {
   TRY_CATCH_IMPL(result, FF_PP_ALL(rexpr), FF_PP_ALL(catch_exprs), FF_PP_ALL(stack_error_msg)) \
   lhs = *std::move((result));  // NOLINT
 
-#define RET_NAME FF_PP_JOIN(_ret, __COUNTER__, __LINE__)
+#define RET_NAME FF_PP_JOIN_U(_ret, __COUNTER__, __LINE__)
 
 #define TRY_ASSIGN(lhs, rexpr) \
   TRY_ASSIGN_CATCH_IMPL(       \
