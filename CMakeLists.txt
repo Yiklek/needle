@@ -114,6 +114,7 @@ add_library(FineflowCore
     "src/fineflow/core/tensor.cpp"
     "src/fineflow/core/op_kernel.cpp"
     "src/fineflow/core/kernels/add_kernel.cpp"
+    "src/fineflow/core/kernels/compact_kernel.cpp"
     "src/fineflow/core/cpu/cpu_tensor.cpp"
 )
 

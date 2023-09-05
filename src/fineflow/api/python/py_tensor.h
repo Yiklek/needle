@@ -11,7 +11,7 @@ class Tensor final {
 private:
   BlobTensorPtr tensor_;
   Tensor() = default;
-  explicit Tensor(BlobTensor* tensor) : tensor_(tensor) {}
+  explicit Tensor(CpuTensor* tensor) : tensor_(tensor) {}
 
 public:
   Tensor(const BlobTensorPtr& tensor) : tensor_(tensor) {}        // NOLINT
@@ -22,11 +22,19 @@ public:
     }
     return Tensor();
   }
-  inline const BlobTensor* operator->() const { return tensor_.get(); }
-  inline BlobTensor* operator->() { return tensor_.get(); }
+  const BlobTensorPtr& operator->() const { return tensor_; }
+  BlobTensorPtr& operator->() { return tensor_; }
+
+  const BlobTensorPtr& operator*() const { return tensor_; }
+  BlobTensorPtr& operator*() { return tensor_; }
+
   [[nodiscard]] inline const BlobTensorPtr& ptr() const { return tensor_; }
   inline operator const BlobTensorPtr&() const { return tensor_; }  // NOLINT
   inline operator BlobTensorPtr&() { return tensor_; }              // NOLINT
+  ~Tensor() {
+    LOG(trace) << fmt::format("Deconstruct python_api tensor. Core tensor (Use count): {} ({}). Buffer: {}",
+                              fmt::ptr(tensor_.get()), tensor_.use_count(), fmt::ptr(tensor_->rawPtr()));
+  }
 };
 
 }  // namespace fineflow::python_api

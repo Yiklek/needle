@@ -11,7 +11,7 @@ class Factory {
 public:
   FF_DISALLOW_COPY_AND_MOVE(Factory);
   Factory() = default;
-  virtual ~Factory() = default;
+  ~Factory() = default;
 
   using Target = T;
 };
@@ -21,7 +21,7 @@ class OpKernelFactory : public Factory<T> {
 public:
   FF_DISALLOW_COPY_AND_MOVE(OpKernelFactory);
   OpKernelFactory() = default;
-  virtual ~OpKernelFactory() = default;
+  ~OpKernelFactory() = default;
 
   using Target = T;
   template <typename... Args>

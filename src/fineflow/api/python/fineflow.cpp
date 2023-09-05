@@ -8,6 +8,7 @@
 #include "fineflow/core/common/types_tuple.h"
 #include "fineflow/core/cpu/cpu_tensor.h"
 #include "fineflow/core/functional.h"
+#include "fineflow/core/tensor_util.h"
 #include "fmt/ranges.h"
 #include "pybind11/numpy.h"
 #include "pybind11/pybind11.h"
@@ -18,20 +19,29 @@ struct DataTypeToFormat;
 struct FormatToDataType;
 
 auto ToNumpy(Tensor &a) {
-  auto numpy_strides = a->stride();
-  auto elem_size = *DataTypeSizeRegistryMgr::Get().GetValue(a->dtype()).value();
+  auto elem_size = **DataTypeSizeRegistryMgr::Get().GetValue(a->dtype());
   const auto &format = **RegistryMgr<DataType, std::string, DataTypeToFormat>::Get().GetValue(a->dtype());
+  auto t = *a;
+  if (a->offset() > 0) {
+    auto compact = PyFunctor<Tensor, const Tensor &>("compact");
+    t = compact(a);
+  }
+  auto numpy_strides = t->stride();
   std::transform(numpy_strides.begin(), numpy_strides.end(), numpy_strides.begin(),
                  [elem_size](auto &c) { return c * elem_size; });
+
+  if (t->offset() > 0) {
+    throw RuntimeException("numpy offset must be 0.");
+  }
   return py::array(
-      py::buffer_info(reinterpret_cast<void *>(reinterpret_cast<uint8_t *>(a->rawPtrMut()) + a->offset() * elem_size),
-                      elem_size, format, a->shape().size(), a->shape(), numpy_strides));
+      py::buffer_info(reinterpret_cast<void *>(reinterpret_cast<uint8_t *>(t->rawPtrMut()) + t->offset() * elem_size),
+                      elem_size, format, t->shape().size(), t->shape(), numpy_strides));
 }
 
-auto FromNumpy(const py::array &a, DeviceType devide_type) {
+auto FromNumpy(const py::array &a, DeviceType device_type) {
   auto b = a.request();
-  const auto &dtype = **RegistryMgr<std::string, DataType, FormatToDataType>::Get().GetValue(b.format);
-  auto out = Tensor::New(devide_type, b.size * b.itemsize, dtype);
+  const auto dtype = **RegistryMgr<std::string, DataType, FormatToDataType>::Get().GetValue(b.format);
+  auto out = Tensor::New(device_type, b.size * b.itemsize, dtype);
   std::memcpy(out->rawPtrMut(), b.ptr, out->bufferSize());
   auto elem_size = *RegistryMgr<DataType, size_t>::Get().GetValue(dtype).value();
   auto numpy_strides = b.strides;
@@ -77,7 +87,7 @@ PYBIND11_MODULE(PYBIND11_CURRENT_MODULE_NAME, m) {
       .def("to_numpy", ToNumpy);
 
   m.def("to_numpy", ToNumpy);
-  m.def("from_numpy", FromNumpy, py::arg("array"), py::arg("devide_type") = DeviceType::kCPU);
+  m.def("from_numpy", FromNumpy, py::arg("array"), py::arg("device_type") = DeviceType::kCPU);
 };
 namespace {
 

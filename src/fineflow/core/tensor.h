@@ -1,6 +1,7 @@
 #ifndef FINEFLOW_CORE_TENSOR_H_
 #define FINEFLOW_CORE_TENSOR_H_
 #include <iostream>
+#include <utility>
 // #include <cstdlib>
 #include "fineflow/core/common/data_type.h"
 #include "fineflow/core/common/log.h"
@@ -20,49 +21,81 @@ inline Stride GetCompactStride(const Shape& shape) {
   }
   return ret;
 }
-class Tensor {
+class ReadableTensorTrait {
 public:
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
-  // NOTE: Performance will be degraded if the destructor is virtual.
-  //       So please do NOT implement custom destructor in any child classes of user_op::Tensor,
-  //       and every fields of child classes should be of POD type.
-  virtual ~Tensor() = default;
-#pragma GCC diagnostic pop
+  [[nodiscard]] virtual const Shape& shape() const = 0;    // { return shape_; };
+  [[nodiscard]] virtual const Stride& stride() const = 0;  // { return stride_; };
+  [[nodiscard]] virtual DataType dtype() const = 0;        // { return dtype_; };
+  [[nodiscard]] virtual int64_t elementCount() const { return GetElementCount(shape()); }
+};
+struct WritableTensorTrait {
+public:
+  virtual Shape& shapeMut() = 0;    // { return shape_; };
+  virtual Stride& strideMut() = 0;  //  { return stride_; };
+};
 
-  [[nodiscard]] virtual const Shape& shape() const = 0;
-  virtual Shape& shapeMut() = 0;
-  [[nodiscard]] virtual const Stride& stride() const = 0;
-  virtual Stride& strideMut() = 0;
-  [[nodiscard]] virtual DataType dtype() const = 0;
-  // virtual MemoryFormat memory_format() const = 0;
-  // virtual const MemoryCase& mem_case() const = 0;
-  [[nodiscard]] virtual const void* rawPtr() const = 0;
-  virtual void* rawPtrMut() = 0;
+class TensorAttrsHolder {
+public:
+  TensorAttrsHolder(const DataType& dtype, const Shape& shape)
+      : TensorAttrsHolder(dtype, shape, GetCompactStride(shape)) {}
+  TensorAttrsHolder(const DataType& dtype, Shape shape, Stride stride)
+      : dtype_(dtype), shape_(std::move(shape)), stride_(std::move(stride)) {}
 
-  [[nodiscard]] int64_t elementCount() const { return GetElementCount(shape()); }
-  template <typename T = void>
-  const T* castPtr() const {
-    checkDataType<T>();
-    return reinterpret_cast<const T*>(rawPtr());
-  }
+  DataType dtype_;
+  Shape shape_;
+  Stride stride_;
+};
 
-  template <typename T = void>
-  T* castPtrMut() {
-    checkDataType<T>();
-    return reinterpret_cast<T*>(rawPtrMut());
-  }
+#define FF_COMPOSE_READEBLE_TENSOR(class)                                                \
+public:                                                                                  \
+  [[nodiscard]] const Shape& shape() const override { return tensor_attrs_.shape_; };    \
+  [[nodiscard]] const Stride& stride() const override { return tensor_attrs_.stride_; }; \
+  [[nodiscard]] DataType dtype() const override { return tensor_attrs_.dtype_; };        \
+                                                                                         \
+protected:                                                                               \
+  TensorAttrsHolder tensor_attrs_;
+//
+class ReadableTensor : public ReadableTensorTrait {
+public:
+  ReadableTensor(const DataType& dtype, const Shape& shape) : ReadableTensor(dtype, shape, GetCompactStride(shape)) {}
+  ReadableTensor(const DataType& dtype, Shape shape, Stride stride)
+      : tensor_attrs_(dtype, std::move(shape), std::move(stride)) {}
+
+  [[nodiscard]] const Shape& shape() const override { return tensor_attrs_.shape_; };     // { return shape_; };
+  [[nodiscard]] const Stride& stride() const override { return tensor_attrs_.stride_; };  // { return stride_; };
+  [[nodiscard]] DataType dtype() const override { return tensor_attrs_.dtype_; };         // { return dtype_; };
 
 protected:
-  template <typename T>
-  void checkDataType() const {
-    if (!static_cast<bool>(std::is_same_v<T, void>) && !static_cast<bool>(std::is_same_v<T, char>) &&
-        dtype() != DataType::kChar && dtype() != GetDataType<T>::value) {
-      LOG(err) << "tensor data_type mismatched. value: " << DataType_Name(dtype())
-               << ", template T:" << DataType_Name(GetDataType<T>::value);
-    }
-  }
+  TensorAttrsHolder tensor_attrs_;
 };
+
+#define FF_COMPOSE_WRITABLE_TENSOR(class)                      \
+public:                                                        \
+  Shape& shapeMut() override { return tensor_attrs_.shape_; }; \
+  Stride& strideMut() override { return tensor_attrs_.stride_; };
+class WritableTensor : public ReadableTensor, public WritableTensorTrait {
+public:
+  using ReadableTensor::ReadableTensor;
+  Shape& shapeMut() override { return tensor_attrs_.shape_; };     // { return shape_; };
+  Stride& strideMut() override { return tensor_attrs_.stride_; };  //  { return stride_; };
+};
+
+// class Tensor : public virtual WritableTensor {
+// public:
+//   using WritableTensor::WritableTensor;
+// #pragma GCC diagnostic push
+// #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+//   // NOTE: Performance will be degraded if the destructor is virtual.
+//   //       So please do NOT implement custom destructor in any child classes of user_op::Tensor,
+//   //       and every fields of child classes should be of POD type.
+//   // virtual ~Tensor() = default;
+// #pragma GCC diagnostic pop
+//
+//   // virtual Shape& shapeMut() = 0;
+//   // virtual Stride& strideMut() = 0;
+//   // virtual MemoryFormat memory_format() const = 0;
+//   // virtual const MemoryCase& mem_case() const = 0;
+// };
 }  // namespace fineflow
 
 #endif

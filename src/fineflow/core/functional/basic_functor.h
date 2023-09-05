@@ -11,5 +11,12 @@ public:
   Ret<BlobTensorPtr> operator()(const BlobTensorPtr& a, const BlobTensorPtr& b);
 };
 using AddFunctorType = function_traits<AddFunctor>::func_type;
+class CompactFunctor {
+public:
+  CompactFunctor() = default;
+
+  Ret<BlobTensorPtr> operator()(const BlobTensorPtr& a);
+};
+using CompactFunctorType = function_traits<CompactFunctor>::func_type;
 }  // namespace fineflow
 #endif  // FINEFLOW_CORE_FUNCTIONAL_BASIC_FUNCTOR_H_
