@@ -20,11 +20,9 @@ inline Ret<void> Call(KernelComputeContext& ctx, DataType kernel_dtype) {
 }
 
 Ret<BlobTensorPtr> AddFunctor::operator()(const BlobTensorPtr& a, const BlobTensorPtr& b) {
-  if (a->dtype() != b->dtype()) {
-    auto e = fmt::format("Tensor a({}) and Tensor b({}) must be same dtype.", a->dtype(), b->dtype());
-    SPDLOG_ERROR(e);
-    throw std::invalid_argument(e);
-  }
+  CHECK_OR_RETURN(a->dtype() == b->dtype())
+      << fmt::format("Tensor a({}) and Tensor b({}) must be same dtype.", a->dtype(), b->dtype());
+
   auto tc = std::shared_ptr<BlobTensor>(new CpuTensor(a->dtype(), a->shape()));
   KernelComputeContext ctx;
   ctx.arg2tensor_.insert({{"in", 0}, std::move(a)});
