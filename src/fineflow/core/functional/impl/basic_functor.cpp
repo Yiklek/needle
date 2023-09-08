@@ -1,15 +1,14 @@
-#include "fineflow/core/functional/basic_functor.h"
-
 #include "fineflow/core/common/result.hpp"
 #include "fineflow/core/cpu/cpu_tensor.h"
+#include "fineflow/core/functional/basic_functor.h"
 #include "fineflow/core/kernels/add_kernel.h"
 #include "fineflow/core/kernels/compact_kernel.h"
 #include "fineflow/core/tensor_util.h"
+
 namespace fineflow {
 namespace {
-REGISTER_KEY(std::function<AddFunctorType>, std::string("add")).setValue(std::function<AddFunctorType>(AddFunctor()));
-REGISTER_KEY(std::function<CompactFunctorType>, std::string("compact"))
-    .setValue(std::function<CompactFunctorType>(CompactFunctor()));
+REGISTER_FUNCTOR(AddFunctor, "add")
+REGISTER_FUNCTOR(CompactFunctor, "compact")
 }  // namespace
 template <class T>
 inline Ret<void> Call(KernelComputeContext& ctx, DataType kernel_dtype) {

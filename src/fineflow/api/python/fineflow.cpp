@@ -18,9 +18,25 @@ namespace py = pybind11;
 struct DataTypeToFormat;
 struct FormatToDataType;
 
+const std::string &GetTypeFormat(DataType dtype) {
+  TRY_ASSIGN_CATCH(auto r, FF_PP_ALL(RegistryMgr<DataType, std::string, DataTypeToFormat>::Get().GetValue(dtype)),
+                   { ThrowError(e); });
+  return *r;
+}
+size_t GetTypeElemSize(DataType dtype) {
+  TRY_ASSIGN_CATCH(auto r, FF_PP_ALL(RegistryMgr<DataType, size_t>::Get().GetValue(dtype)), { ThrowError(e); });
+  return *r;
+}
+
+DataType GetFormatType(const std::string &format) {
+  TRY_ASSIGN_CATCH(auto r, FF_PP_ALL(RegistryMgr<std::string, DataType, FormatToDataType>::Get().GetValue(format)),
+                   { ThrowError(e); });
+  return *r;
+}
+
 auto ToNumpy(Tensor &a) {
   auto elem_size = **DataTypeSizeRegistryMgr::Get().GetValue(a->dtype());
-  const auto &format = **RegistryMgr<DataType, std::string, DataTypeToFormat>::Get().GetValue(a->dtype());
+  const auto &format = GetTypeFormat(a->dtype());
   auto t = *a;
   if (a->offset() > 0) {
     auto compact = PyFunctor<Tensor, const Tensor &>("compact");
@@ -28,7 +44,7 @@ auto ToNumpy(Tensor &a) {
   }
   auto numpy_strides = t->stride();
   std::transform(numpy_strides.begin(), numpy_strides.end(), numpy_strides.begin(),
-                 [elem_size](auto &c) { return c * elem_size; });
+                 [elem_size](auto &c) { return c * elem_size; });  // numpy sitrde is by bytes.
 
   if (t->offset() > 0) {
     throw RuntimeException("numpy offset must be 0.");
@@ -40,13 +56,13 @@ auto ToNumpy(Tensor &a) {
 
 auto FromNumpy(const py::array &a, DeviceType device_type) {
   auto b = a.request();
-  const auto dtype = **RegistryMgr<std::string, DataType, FormatToDataType>::Get().GetValue(b.format);
+  const auto dtype = GetFormatType(b.format);
   auto out = Tensor::New(device_type, b.size * b.itemsize, dtype);
   std::memcpy(out->rawPtrMut(), b.ptr, out->bufferSize());
-  auto elem_size = *RegistryMgr<DataType, size_t>::Get().GetValue(dtype).value();
+  auto elem_size = GetTypeElemSize(dtype);
   auto numpy_strides = b.strides;
   std::transform(numpy_strides.begin(), numpy_strides.end(), numpy_strides.begin(),
-                 [elem_size](auto &c) { return c / elem_size; });
+                 [elem_size](auto &c) { return c / elem_size; });  // numpy sitrde is by bytes.
   out->shapeMut() = b.shape;
   out->strideMut() = numpy_strides;
   return out;

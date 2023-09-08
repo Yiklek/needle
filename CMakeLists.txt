@@ -34,7 +34,6 @@ if(NOT MSVC)
 else()
     set(CMAKE_CXX_FLAGS "/std:${CXX_STANDARD_NAME} ${CMAKE_CXX_FLAGS}")
 endif()
-set(CMAKE_CUDA_FLAGS "-std=${CXX_STANDARD_NAME} ${CMAKE_CUDA_FLAGS}")
 
 set(PYTHON_MODULE_PATH needle/backend_ndarray)
 

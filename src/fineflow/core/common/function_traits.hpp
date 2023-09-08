@@ -55,5 +55,9 @@ struct function_traits<Ret (C::*)(Args...) const> {
 
 template <typename F>
 struct function_traits<F, void_t<decltype(&F::operator())>> : public function_traits<decltype(&F::operator())> {};
+
+template <typename F>
+using FuncType = function_traits<F>::func_type;
+
 }  // namespace fineflow
 #endif  // !fineflow_CORE_COMMON_FUNCTION_TRAITS_HPP_

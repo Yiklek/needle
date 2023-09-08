@@ -66,12 +66,13 @@ using PyFunctorParent = Functor<Ret<MapRetTypeT<R>>, MapArgTypeT<Args>...>;
 
 template <class R, class... Args>
 struct PyFunctor : public PyFunctorParent<R, Args...> {
-  using ParentType = PyFunctorParent<R, Args...>;
-  using Functor<Ret<MapRetTypeT<R>>, MapArgTypeT<Args>...>::Functor;
+  using CoreFunctorType = PyFunctorParent<R, Args...>;
+  using CoreFunctorType::CoreFunctorType;
 
   R operator()(Args... args) {
     auto mapped_args = MapArgs<Args...>(args...);
-    TRY_ASSIGN_CATCH(auto r, FF_PP_ALL(std::apply(static_cast<ParentType>(*this), mapped_args)), { ThrowError(e); })
+    TRY_ASSIGN_CATCH(auto r, FF_PP_ALL(std::apply(static_cast<CoreFunctorType>(*this), mapped_args)),
+                     { ThrowError(e); })
     return MapRet(r);
   }
 };

@@ -69,33 +69,17 @@ protected:
   TensorAttrsHolder tensor_attrs_;
 };
 
-#define FF_COMPOSE_WRITABLE_TENSOR(class)                      \
-public:                                                        \
-  Shape& shapeMut() override { return tensor_attrs_.shape_; }; \
+#define FF_COMPOSE_WRITABLE_TENSOR(class)                                                                   \
+  static_assert(&class ::tensor_attrs_ != nullptr, FF_PP_STRINGIZE(class) "must compose readable tensor."); \
+                                                                                                            \
+public:                                                                                                     \
+  Shape& shapeMut() override { return tensor_attrs_.shape_; };                                              \
   Stride& strideMut() override { return tensor_attrs_.stride_; };
 class WritableTensor : public ReadableTensor, public WritableTensorTrait {
 public:
   using ReadableTensor::ReadableTensor;
-  Shape& shapeMut() override { return tensor_attrs_.shape_; };     // { return shape_; };
-  Stride& strideMut() override { return tensor_attrs_.stride_; };  //  { return stride_; };
+  Shape& shapeMut() override { return tensor_attrs_.shape_; };
+  Stride& strideMut() override { return tensor_attrs_.stride_; };
 };
-
-// class Tensor : public virtual WritableTensor {
-// public:
-//   using WritableTensor::WritableTensor;
-// #pragma GCC diagnostic push
-// #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
-//   // NOTE: Performance will be degraded if the destructor is virtual.
-//   //       So please do NOT implement custom destructor in any child classes of user_op::Tensor,
-//   //       and every fields of child classes should be of POD type.
-//   // virtual ~Tensor() = default;
-// #pragma GCC diagnostic pop
-//
-//   // virtual Shape& shapeMut() = 0;
-//   // virtual Stride& strideMut() = 0;
-//   // virtual MemoryFormat memory_format() const = 0;
-//   // virtual const MemoryCase& mem_case() const = 0;
-// };
 }  // namespace fineflow
-
 #endif

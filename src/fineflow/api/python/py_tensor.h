@@ -11,7 +11,8 @@ class Tensor final {
 private:
   BlobTensorPtr tensor_;
   Tensor() = default;
-  explicit Tensor(CpuTensor* tensor) : tensor_(tensor) {}
+  template <class T>
+  explicit Tensor(T* tensor) : tensor_(tensor) {}
 
 public:
   Tensor(const BlobTensorPtr& tensor) : tensor_(tensor) {}        // NOLINT
