@@ -3,7 +3,7 @@
 #include <cstdlib>
 
 #include "fineflow/core/blob_tensor.h"
-#include "fmt/format.h"
+#include "fineflow/core/common/fmt.hpp"
 
 namespace fineflow {
 

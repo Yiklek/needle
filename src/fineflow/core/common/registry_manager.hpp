@@ -89,9 +89,9 @@ struct Register {
       RegisterAll(args..., indexes2);
     }
 
-    template <std::size_t... I, std::size_t... I2>
-    inline void RegisterAll(Args... args, std::index_sequence<I2...>) {
-      (RegisterGroup<I2>(std::tuple(args...), std::make_index_sequence<GroupSize>()), ...);
+    template <std::size_t... GroupI>
+    inline void RegisterAll(Args... args, std::index_sequence<GroupI...>) {
+      (RegisterGroup<GroupI>(std::tuple(args...), std::make_index_sequence<GroupSize>()), ...);
     }
     template <std::size_t Group, std::size_t... I>
     inline void RegisterGroup(std::tuple<Args...> args, std::index_sequence<I...>) {

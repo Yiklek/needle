@@ -8,6 +8,7 @@
 
 #include "absl/strings/match.h"
 #include "fineflow/core/common/error.pb.h"
+#include "fineflow/core/common/fmt.hpp"
 #include "fineflow/core/common/hash.hpp"
 #include "fineflow/core/common/preprocess.h"
 #include "fineflow/core/common/result_types.h"

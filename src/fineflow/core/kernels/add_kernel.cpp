@@ -1,7 +1,6 @@
-#include "fineflow/core/kernels/add_kernel.h"
-
 #include "fineflow/core/common/device_type.pb.h"
 #include "fineflow/core/common/registry_manager.hpp"
+#include "fineflow/core/kernels/add_kernel.h"
 #include "fineflow/core/op_kernel_factory.h"
 namespace fineflow {
 

@@ -7,7 +7,7 @@
 #include "fineflow/core/common/registry_manager.hpp"
 #include "fineflow/core/common/traits.hpp"
 #include "fineflow/core/common/types_tuple.h"
-#include "fmt/format.h"
+#include "fineflow/core/common/fmt.hpp"
 namespace fineflow {
 
 template <typename T, typename T2 = void>
