@@ -9,6 +9,14 @@ inline BlobTensorPtr DeriveEmptyTensorLike(const BlobTensorPtr& tensor) {
   }
   return nullptr;
 }
+
+template <class T>
+inline BlobTensorPtr DeriveScalarOnSameDevice(const BlobTensorPtr& tensor, T scalar) {
+  if (tensor->device() == DeviceType::kCPU) {
+    return static_cast<BlobTensorPtr>(new CpuTensor(scalar));
+  }
+  return nullptr;
+}
 inline BlobTensorPtr CopyTensorFrom(const BlobTensorPtr& tensor) {
   if (tensor->device() == DeviceType::kCPU) {
     auto* n = new CpuTensor(*static_cast<CpuTensor*>(tensor.get()));

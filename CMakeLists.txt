@@ -76,11 +76,10 @@ list(APPEND NEEDLE_THIRD_COMMON_LIBS Boost::preprocessor)
 add_library(ThirdCommon INTERFACE)
 target_link_libraries(ThirdCommon INTERFACE ${NEEDLE_THIRD_COMMON_LIBS})
 
+file(GLOB FINEFLOW_CORE_PROTO_SRCS  src/fineflow/core/common/*.proto)
 add_library(proto-objects
     OBJECT
-    "src/fineflow/core/common/data_type.proto"
-    "src/fineflow/core/common/error.proto"
-    "src/fineflow/core/common/device_type.proto"
+    ${FINEFLOW_CORE_PROTO_SRCS}
 )
 
 target_link_libraries(proto-objects PUBLIC protobuf::libprotobuf)
@@ -94,30 +93,30 @@ protobuf_generate(
     IMPORT_DIRS "src"
     PROTOC_OUT_DIR "${PROTO_BINARY_DIR}"
 )
-add_library(FineflowCommon
-    "src/fineflow/core/common/error.cpp"
-    "src/fineflow/core/common/error_util.cpp"
-)
+file(GLOB FINEFLOW_CORE_COMMON_SRCS  src/fineflow/core/common/*.cpp)
+add_library(FineflowCommon ${FINEFLOW_CORE_COMMON_SRCS})
 target_link_libraries(FineflowCommon PUBLIC proto-objects ThirdCommon)
 
+file(GLOB FINEFLOW_CORE_FUNCTOR_SRCS  src/fineflow/core/functional/impl/*_functor.cpp)
+
 add_library(FineflowCoreFunctionalObj OBJECT
-    "src/fineflow/core/functional/impl/basic_functor.cpp"
+    ${FINEFLOW_CORE_FUNCTOR_SRCS}
 )
 
 target_link_libraries(FineflowCoreFunctionalObj PUBLIC FineflowCommon)
 
-add_library(FineflowCoreFunctional)
+add_library(FineflowCoreFunctional SHARED)
 target_link_libraries(FineflowCoreFunctional PUBLIC FineflowCoreFunctionalObj)
 
-add_library(FineflowCore
-    "src/fineflow/core/tensor.cpp"
-    "src/fineflow/core/op_kernel.cpp"
-    "src/fineflow/core/kernels/add_kernel.cpp"
-    "src/fineflow/core/kernels/compact_kernel.cpp"
-    "src/fineflow/core/cpu/cpu_tensor.cpp"
-)
 
-target_link_libraries(FineflowCore PUBLIC FineflowCommon)
+file(GLOB FINEFLOW_CORE_SRCS  src/fineflow/core/*.cpp)
+add_library(FineflowCore ${FINEFLOW_CORE_SRCS})
+target_link_libraries(FineflowCore PUBLIC FineflowCoreKernel)
+
+file(GLOB FINEFLOW_CORE_CPU_KERNEL_SRCS  src/fineflow/core/kernels/cpu/*_kernel.cpp)
+add_library(FineflowCoreKernel
+    ${FINEFLOW_CORE_CPU_KERNEL_SRCS})
+target_link_libraries(FineflowCoreKernel PUBLIC FineflowCommon)
 
 add_pybind11_module(FineflowPyApi
     SRCS src/fineflow/api/python/fineflow.cpp

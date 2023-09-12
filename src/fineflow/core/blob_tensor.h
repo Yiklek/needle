@@ -8,7 +8,12 @@
 namespace fineflow {
 
 inline Shape GetShape(DataType dtype, uint64_t buffer_size) {
-  return {static_cast<ssize_t>(buffer_size / **DataTypeSizeRegistryMgr::Get().GetValue(dtype))};
+  auto elem_size = **DataTypeSizeRegistryMgr::Get().GetValue(dtype);
+  auto count = buffer_size / elem_size;
+  if (count <= 1) {
+    return {};
+  }
+  return {static_cast<ssize_t>(count)};
 }
 inline uint64_t GetBufferSize(DataType dtype, const Shape& shape) {
   return **DataTypeSizeRegistryMgr::Get().GetValue(dtype) * GetElementCount(shape);
@@ -126,8 +131,12 @@ struct RawAllocator {
   static void deallocate(void* p) { free(p); }
   static void copy(void* dst, void* src, size_t size) { std::memcpy(dst, src, size); }
 };
+class BlobTensor;
+using BlobTensorPtr = std::shared_ptr<BlobTensor>;
 
-class BlobTensor : public WritableBlobTensor, public LeakableTensor<BlobTensor> {
+class BlobTensor : public WritableBlobTensor,
+                   public LeakableTensor<BlobTensor>,
+                   public std::enable_shared_from_this<BlobTensor> {
   FF_DISALLOW_COPY(BlobTensor)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
@@ -135,6 +144,13 @@ class BlobTensor : public WritableBlobTensor, public LeakableTensor<BlobTensor> 
   //       So please do NOT implement custom destructor in any child classes of BlobTensor,
   //       and every fields of child classes should be of POD type.
 #pragma GCC diagnostic pop
+public:
+  Ret<BlobTensorPtr> shared() {
+    auto ptr = weak_from_this().lock();
+    CHECK_OR_RETURN(ptr) << "BlobTensor " << this << " is not shared.";
+    return ptr;
+  }
+
 protected:
   using WritableBlobTensor::WritableBlobTensor;
 };
@@ -149,6 +165,16 @@ public:
   AllocableBlobTensor(DeviceType device, DataType dtype, const Shape& shape) : BlobTensor(device, dtype, shape) {
     alloc();
   }
+
+  // scalar
+  AllocableBlobTensor(DeviceType device, DataType dtype) : BlobTensor(device, dtype, {}) { alloc(); }
+
+  template <class T>
+  AllocableBlobTensor(DeviceType device, T t) : BlobTensor(device, GetDataType<T>::value, {}) {
+    alloc();
+    *castPtrMut<T>() = t;
+  }
+
   ~AllocableBlobTensor() {
     if (!leaked()) {
       release();

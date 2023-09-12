@@ -13,6 +13,9 @@ inline int64_t GetElementCount(const Shape& shape) {
   return std::accumulate(shape.begin(), shape.end(), 1L, std::multiplies<>());
 }
 inline Stride GetCompactStride(const Shape& shape) {
+  if (shape.empty()) {
+    return {};
+  }
   ssize_t stride = 1;
   Stride ret(shape.size(), 0);
   for (int i = shape.size() - 1; i >= 0; --i) {
@@ -23,10 +26,11 @@ inline Stride GetCompactStride(const Shape& shape) {
 }
 class ReadableTensorTrait {
 public:
-  [[nodiscard]] virtual const Shape& shape() const = 0;    // { return shape_; };
-  [[nodiscard]] virtual const Stride& stride() const = 0;  // { return stride_; };
-  [[nodiscard]] virtual DataType dtype() const = 0;        // { return dtype_; };
-  [[nodiscard]] virtual int64_t elementCount() const { return GetElementCount(shape()); }
+  [[nodiscard]] virtual const Shape& shape() const = 0;
+  [[nodiscard]] virtual const Stride& stride() const = 0;
+  [[nodiscard]] virtual DataType dtype() const = 0;
+  [[nodiscard]] int64_t elementCount() const { return GetElementCount(shape()); }
+  [[nodiscard]] bool isScalar() const { return elementCount() == 1 && shape().empty() && stride().empty(); }
 };
 struct WritableTensorTrait {
 public:

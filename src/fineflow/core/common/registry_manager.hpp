@@ -22,8 +22,8 @@ public:
   template <class KeyT = Key, class ValueT = Value, class = std::enable_if_t<std::is_same_v<KeyT, Key>>,
             class = std::enable_if_t<std::is_same_v<ValueT, Value>>>
   Ret<void> Register(KeyT&& key, ValueT&& value) {
-    CHECK_OR_RETURN(result_.emplace(std::forward<KeyT>(key), std::forward<ValueT>(value)).second)
-        << "Register key: " << key << " failed.";
+    CHECK_OR_RETURN(result_.emplace(std::forward<KeyT>(key), std::forward<ValueT>(value)).second);
+        // << "Register key: " << key << " failed.";
     return Ok();
   }
   Ret<const Value* const> GetValue(const Key& key) {

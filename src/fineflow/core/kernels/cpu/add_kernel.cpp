@@ -37,11 +37,6 @@ Ret<std::unique_ptr<AddKernel>> AddKernelFactory::create(DataType dtype) {
   static const std::map<DataType, std::function<std::unique_ptr<AddKernel>()>> new_add_handle{
 
 #define MAKE_NEW_ADD_ENTRY(type_cpp, type_proto) {type_proto, NewAdd<type_cpp>},
-// for i in [0, CPU_PRIMITIVE_NATIVE_TYPE_TUPLE)
-// #define BOOST_PP_LOCAL_LIMITS (0, BOOST_PP_TUPLE_SIZE(CPU_PRIMITIVE_NATIVE_TYPE_TUPLE) - 1)
-// #define BOOST_PP_LOCAL_MACRO(i) \
-//   FF_PP_FORWARD(MAKE_NEW_ADD_ENTRY, BOOST_PP_TUPLE_ENUM(BOOST_PP_TUPLE_ELEM(i, CPU_PRIMITIVE_NATIVE_TYPE_TUPLE)))
-// #include BOOST_PP_LOCAL_ITERATE()
 #define FOR_MAKE_NEW_ADD_ENTRY(i, data, elem) FF_PP_FORWARD(MAKE_NEW_ADD_ENTRY, BOOST_PP_TUPLE_ENUM(elem))
       BOOST_PP_SEQ_FOR_EACH(FOR_MAKE_NEW_ADD_ENTRY, _, CPU_PRIMITIVE_NATIVE_TYPE_SEQ)
 #undef FOR_MAKE_NEW_ADD_ENTRY

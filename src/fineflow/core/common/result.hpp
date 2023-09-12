@@ -25,14 +25,14 @@ struct Ok {
 #define FF_PP_STACK_FUNC __FUNCTION__
 #endif  // DEBUG
 
-#define RET_ERROR_ADD_STACKFRAME(error, error_msg)                                                         \
+#define FF_ERROR_ADD_STACKFRAME(error, error_msg)                                                          \
   (error).addStackFrame([](const char* function) {                                                         \
     thread_local static auto frame = ::fineflow::ErrorStackFrame(__FILE__, __LINE__, function, error_msg); \
     return frame;                                                                                          \
   }(FF_PP_STACK_FUNC))
 
 #define CHECK_OR_RETURN_INTERNAL(expr, error_msg) \
-  if (!(expr)) return RET_ERROR_ADD_STACKFRAME(Error::CheckFailedError(), error_msg)
+  if (!(expr)) return FF_ERROR_ADD_STACKFRAME(Error::CheckFailedError(), error_msg)
 
 #define CHECK_OR_RETURN(expr)                                            \
   CHECK_OR_RETURN_INTERNAL(expr, FF_PP_STRINGIZE(CHECK_OR_RETURN(expr))) \
@@ -62,12 +62,12 @@ struct Ok {
   CHECK_OR_RETURN_INTERNAL((lhs) != (rhs), FF_PP_STRINGIZE(CHECK_NE_OR_RETURN(lhs, rhs))) \
       << "Check failed: (" << (lhs) << " != " << (rhs) << ") " << Error::kOverrideThenMergeMessage
 
-#define TRY_CATCH_IMPL(result, rexpr, catch_exprs, stack_error_msg)       \
-  /*NOLINTNEXTLINE*/                                                      \
-  auto result = (rexpr);                                                  \
-  if (!(result).has_value()) {                                            \
-    auto e = RET_ERROR_ADD_STACKFRAME((result).error(), stack_error_msg); \
-    catch_exprs                                                           \
+#define TRY_CATCH_IMPL(result, rexpr, catch_exprs, stack_error_msg)      \
+  /*NOLINTNEXTLINE*/                                                     \
+  auto result = (rexpr);                                                 \
+  if (!(result).has_value()) {                                           \
+    auto e = FF_ERROR_ADD_STACKFRAME((result).error(), stack_error_msg); \
+    catch_exprs                                                          \
   }
 
 #define TRY_ASSIGN_CATCH_IMPL(result, lhs, rexpr, catch_exprs, stack_error_msg)                \

@@ -27,6 +27,11 @@ struct MapArgType<const Tensor &> {
   using type = const BlobTensorPtr &;
 };
 
+template <>
+struct MapArgType<Tensor &> {
+  using type = BlobTensorPtr &;
+};
+
 template <class T>
 using MapArgTypeT = typename MapArgType<T>::type;
 

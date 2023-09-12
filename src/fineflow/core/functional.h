@@ -4,6 +4,7 @@
 
 #include "fineflow/core/common/error_util.h"
 #include "fineflow/core/common/registry_manager.hpp"
+#include "fineflow/core/kernels/add_kernel.h"
 namespace fineflow {
 template <class R, class... Args>
 struct Functor {

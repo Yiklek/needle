@@ -89,14 +89,14 @@ template <typename T>
 struct fmt::formatter<std::shared_ptr<T>> : public fmt::formatter<T> {
   template <typename FormatContext, class = fineflow::formatable_t<T>>
   auto format(const std::shared_ptr<T>& ptr, FormatContext& ctx) const -> decltype(ctx.out()) {
-    return fmt::formatter<T>::format(*ptr.get(), ctx);
+    return fmt::formatter<T>::format(ptr ? *ptr : fmt::ptr(nullptr), ctx);
   }
 };
 template <typename T>
 struct fmt::formatter<fineflow::fmt_shared<T>> : public fmt::formatter<T> {
   template <typename FormatContext, class = fineflow::formatable_t<T>>
   auto format(const fineflow::fmt_shared<T>& proxy, FormatContext& ctx) const -> decltype(ctx.out()) {
-    return fmt::formatter<T>::format(*proxy.ptr, ctx);
+    return fmt::formatter<T>::format(proxy.ptr ? *proxy.ptr : fmt::ptr(nullptr), ctx);
   }
 };
 template <typename T>
@@ -110,7 +110,7 @@ template <typename T>
 struct fmt::formatter<fineflow::fmt_unique<T>> : public fmt::formatter<T> {
   template <typename FormatContext, class = fineflow::formatable_t<T>>
   auto format(const fineflow::fmt_unique<T>& proxy, FormatContext& ctx) const -> decltype(ctx.out()) {
-    return fmt::formatter<T>::format(*proxy.ptr, ctx);
+    return fmt::formatter<T>::format(proxy.ptr ? *proxy.ptr : fmt::ptr(nullptr), ctx);
   }
 };
 

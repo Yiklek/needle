@@ -25,5 +25,13 @@ public:
   Ret<BlobTensorPtr> operator()(const BlobTensorPtr& a);
 };
 using CompactFunctorType = FuncType<CompactFunctor>;
+
+template <class T>
+class FillFunctor {
+public:
+  FillFunctor() = default;
+
+  Ret<BlobTensorPtr> operator()(BlobTensorPtr& dst, T scalar);
+};
 }  // namespace fineflow
 #endif  // FINEFLOW_CORE_FUNCTIONAL_BASIC_FUNCTOR_H_

@@ -1,15 +1,7 @@
 #include "fineflow/api/python/py_functor.hpp"
 #include "fineflow/api/python/py_tensor.h"
-#include "fineflow/core/common/device_type.pb.h"
-#include "fineflow/core/common/error_util.h"
 #include "fineflow/core/common/exception.h"
-#include "fineflow/core/common/registry_manager.hpp"
-#include "fineflow/core/common/result.hpp"
-#include "fineflow/core/common/types_tuple.h"
-#include "fineflow/core/cpu/cpu_tensor.h"
-#include "fineflow/core/functional.h"
-#include "fineflow/core/tensor_util.h"
-#include "fmt/ranges.h"
+#include "fineflow/core/common/fmt.hpp"
 #include "pybind11/numpy.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
@@ -29,7 +21,14 @@ size_t GetTypeElemSize(DataType dtype) {
 }
 
 DataType GetFormatType(const std::string &format) {
-  TRY_ASSIGN_CATCH(auto r, FF_PP_ALL(RegistryMgr<std::string, DataType, FormatToDataType>::Get().GetValue(format)),
+  auto f = format;
+  // https://github.com/pybind/pybind11/issues/1908
+  if constexpr (sizeof(void *) == 8) {  // 64bit
+    if (f == "l") {
+      f = "q";
+    }
+  }
+  TRY_ASSIGN_CATCH(auto r, FF_PP_ALL(RegistryMgr<std::string, DataType, FormatToDataType>::Get().GetValue(f)),
                    { ThrowError(e); });
   return *r;
 }
@@ -67,6 +66,25 @@ auto FromNumpy(const py::array &a, DeviceType device_type) {
   out->strideMut() = numpy_strides;
   return out;
 }
+void RegisterFill(py::module_ &m) {
+  auto fill = std::function(PyFunctor<Tensor, Tensor &, const Tensor &>("fill"));
+  m.def("fill", fill);
+  // must capture fill function as value
+  m.def("fill", [=](Tensor &t, const py::array &a) { return fill(t, FromNumpy(a, t->device())); });
+
+#define REGISTER_FILL_PYFUNCTOR(type_cpp, type_proto) \
+  m.def("fill", std::function(PyFunctor<Tensor, Tensor &, type_cpp>("fill")));
+#define FOR_REGISTER_FULL_PYFUNCTOR(i, data, elem) REGISTER_FILL_PYFUNCTOR(elem, _)
+#define REGISTER_FILL_TYPE_SEQ (double)(bool)(int64_t)(std::complex<float>)(std::complex<double>)
+  BOOST_PP_SEQ_FOR_EACH(FOR_REGISTER_FULL_PYFUNCTOR, _, REGISTER_FILL_TYPE_SEQ)
+#undef FOR_REGISTER_FULL_FUNCTOR
+#undef REGISTER_FILL_FUNCTOR
+}
+
+void RegisterAdd(py::module_ &m) {
+  auto ewise_add = std::function(PyFunctor<Tensor, const Tensor &, const Tensor &>("add"));
+  m.def("ewise_add", ewise_add);
+}
 
 PYBIND11_MODULE(PYBIND11_CURRENT_MODULE_NAME, m) {
   py::register_exception_translator([](std::exception_ptr p) {  // NOLINT
@@ -80,13 +98,10 @@ PYBIND11_MODULE(PYBIND11_CURRENT_MODULE_NAME, m) {
       PyErr_SetString(PyExc_NotImplementedError, e.what());
     }
   });
-  auto ewise_add = std::function(PyFunctor<Tensor, const Tensor &, const Tensor &>("add"));
   m.attr("__device_name__") = "cpu_fine";
   // m.attr("__tile_size__") = TILE;
-
-  // m.def("ewise_add", EwiseAdd);
-  m.def("ewise_add", ewise_add);
-
+  RegisterFill(m);
+  RegisterAdd(m);
   py::enum_<DeviceType>(m, "DeviceType")
       .value("cpu", DeviceType::kCPU)
       .value("cuda", DeviceType::kCUDA)
