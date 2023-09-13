@@ -4,10 +4,17 @@
 #include "fineflow/core/op_kernel_factory.h"
 namespace fineflow {
 
+/**
+ * @brief Fill buffer.
+ *
+ * @tparam T Kernel type.
+ * @param scalar scalar
+ * @param dst dst
+ */
 template <class T>
-void Fill(const BlobTensor& scalar, BlobTensor& dst) {
-  auto size = dst.elementCount();
-  T* out_ptr = dst.castPtrMut<T>();
+void Fill(const BlobTensorView& scalar, BlobTensorView* dst) {
+  auto size = dst->bufferSize() / sizeof(T);
+  T* out_ptr = dst->castPtrMut<T>();
   const T s = *scalar.castPtr<T>();
   for (size_t i = 0; i < size; i++) {
     out_ptr[i] = s;
@@ -19,7 +26,7 @@ class FillKernelImpl final : public FillKernel {
   void compute(KernelComputeContext* ctx) const override {
     auto scalar = *ctx->fetchTensor("scalar", 0);
     auto dst = *ctx->fetchTensor("dst", 0);
-    Fill<T>(*scalar, *dst);
+    Fill<T>(scalar, &dst);
   }
 };
 

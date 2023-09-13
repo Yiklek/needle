@@ -13,7 +13,7 @@ struct MapRetType : public type_identity<T> {};
 
 template <>
 struct MapRetType<python_api::Tensor> {
-  using type = BlobTensorPtr;
+  using type = BlobTensorView;
 };
 
 template <class T>
@@ -24,12 +24,12 @@ struct MapArgType : public type_identity<T> {};
 
 template <>
 struct MapArgType<const Tensor &> {
-  using type = const BlobTensorPtr &;
+  using type = const BlobTensorView &;
 };
 
 template <>
 struct MapArgType<Tensor &> {
-  using type = BlobTensorPtr &;
+  using type = BlobTensorView &;
 };
 
 template <class T>
@@ -67,7 +67,7 @@ inline auto MapArgs(Args... args) {
 }
 
 template <class R, class... Args>
-using PyFunctorParent = Functor<Ret<MapRetTypeT<R>>, MapArgTypeT<Args>...>;
+using PyFunctorParent = Functor<MapRetTypeT<R>, MapArgTypeT<Args>...>;
 
 template <class R, class... Args>
 struct PyFunctor : public PyFunctorParent<R, Args...> {
@@ -75,10 +75,16 @@ struct PyFunctor : public PyFunctorParent<R, Args...> {
   using CoreFunctorType::CoreFunctorType;
 
   R operator()(Args... args) {
-    auto mapped_args = MapArgs<Args...>(args...);
-    TRY_ASSIGN_CATCH(auto r, FF_PP_ALL(std::apply(static_cast<CoreFunctorType>(*this), mapped_args)),
-                     { ThrowError(e); })
-    return MapRet(r);
+    auto f = [&] {
+      auto mapped_args = MapArgs<Args...>(args...);
+      return std::apply(static_cast<CoreFunctorType>(*this), mapped_args);
+    };
+    if constexpr (std::is_same_v<R, void>) {
+      TRY_CATCH(f(), { ThrowError(e); })
+    } else {
+      TRY_ASSIGN_CATCH(auto r, f(), { ThrowError(e); })
+      return MapRet(r);
+    }
   }
 };
 }  // namespace fineflow::python_api

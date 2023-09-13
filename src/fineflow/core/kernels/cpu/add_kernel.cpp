@@ -5,7 +5,7 @@
 namespace fineflow {
 
 template <class T>
-void EwiseAdd(const BlobTensor& a, const BlobTensor& b, BlobTensor* out) {
+void EwiseAdd(const BlobTensorView& a, const BlobTensorView& b, BlobTensorView* out) {
   /**
    * Set entries in out to be the sum of correspondings entires in a and b.
    */
@@ -13,6 +13,8 @@ void EwiseAdd(const BlobTensor& a, const BlobTensor& b, BlobTensor* out) {
   T* out_ptr = out->castPtrMut<T>();
   const T* a_ptr = a.castPtr<T>();
   const T* b_ptr = b.castPtr<T>();
+
+// #pragma omp parallel for
   for (size_t i = 0; i < size; i++) {
     out_ptr[i] = a_ptr[i] + b_ptr[i];
   }
@@ -21,10 +23,10 @@ void EwiseAdd(const BlobTensor& a, const BlobTensor& b, BlobTensor* out) {
 template <class T>
 class AddKernelImpl final : public AddKernel {
   void compute(KernelComputeContext* ctx) const override {
-    auto in0 = ctx->fetchTensor("in", 0).value();
-    auto in1 = ctx->fetchTensor("in", 1).value();
-    auto out = ctx->fetchTensor("out", 0).value();
-    EwiseAdd<T>(*in0, *in1, out.get());
+    auto in0 = *ctx->fetchTensor("in", 0);
+    auto in1 = *ctx->fetchTensor("in", 1);
+    auto out = *ctx->fetchTensor("out", 0);
+    EwiseAdd<T>(in0, in1, &out);
   }
 };
 

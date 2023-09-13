@@ -48,9 +48,9 @@ struct Blob {
 class ReadableBlobTensor : public virtual ReadableBlobTensorTrait {
   FF_COMPOSE_READEBLE_TENSOR(ReadableBlobTensor)
   FF_COMPOSE_READABLE_BLOB(ReadableBlobTensor)
-  FF_DISALLOW_COPY(ReadableBlobTensor);
+  // FF_DISALLOW_COPY(ReadableBlobTensor);
 
-public:
+protected:
   ReadableBlobTensor(DeviceType device, DataType dtype, uint64_t buffer_size, uint64_t offset = 0)
       : ReadableBlobTensor(device, dtype, GetShape(dtype, buffer_size)) {
     blob_.offset = offset;
@@ -62,6 +62,7 @@ public:
     blob_.offset = 0;
   }
 
+public:
   template <typename T = void>
   const T* castPtr() const {
     checkDataType<T>();
@@ -77,6 +78,7 @@ public:
   }
 
 protected:
+  FF_DEFAULT_COPY(ReadableBlobTensor)
   ReadableBlobTensor(ReadableBlobTensor&& other) noexcept
       : blob_(std::move(other.blob_)), tensor_attrs_(std::move(other.tensor_attrs_)) {
     other.reset();
@@ -92,11 +94,11 @@ class WritableBlobTensorTrait : public virtual ReadableBlobTensorTrait, public v
 class WritableBlobTensor : public ReadableBlobTensor, public WritableBlobTensorTrait {
   FF_COMPOSE_WRITABLE_TENSOR(WritableBlobTensor)
   FF_COMPOSE_WRITABLE_BLOB(WritableBlobTensor)
-  FF_DISALLOW_COPY(WritableBlobTensor);
 
-public:
+protected:
   using ReadableBlobTensor::ReadableBlobTensor;
 
+public:
   template <typename T = void>
   T*& castPtrMut() {
     checkDataType<T>();
@@ -104,7 +106,37 @@ public:
   }
 
 protected:
-  WritableBlobTensor(WritableBlobTensor&& other) noexcept : ReadableBlobTensor(std::move(other)) {}
+  FF_DEFAULT_COPY_AND_MOVE(WritableBlobTensor);
+  // WritableBlobTensor(WritableBlobTensor&& other) noexcept : ReadableBlobTensor(std::move(other)) {}
+
+  /* sync* methods only used in copy/move */
+
+  inline void syncTensorAttrs(const ReadableBlobTensor& other) {
+    // no sync dtype
+
+    shapeMut() = other.shape();
+    strideMut() = other.stride();
+  }
+  inline void syncBlob(const ReadableBlobTensor& other) {
+    // no sync buffer
+
+    blob_.device = other.device();
+    blob_.buffer_size = other.bufferSize();
+    blob_.offset = other.offset();
+  }
+
+  inline void syncAttrs(const ReadableBlobTensor& other) {
+    syncTensorAttrs(other);
+    syncBlob(other);
+  }
+  WritableBlobTensor& operator=(const WritableBlobTensor& other) {
+    if (this == &other) return *this;
+
+    syncAttrs(other);
+    blob_.buffer = other.rawPtr();
+
+    return *this;
+  }
 };
 class LeakedBlobTensor : public WritableBlobTensor {
   explicit LeakedBlobTensor(WritableBlobTensor&& tensor) : WritableBlobTensor(std::move(tensor)) {}
@@ -134,10 +166,22 @@ struct RawAllocator {
 class BlobTensor;
 using BlobTensorPtr = std::shared_ptr<BlobTensor>;
 
+class BlobTensorView : public WritableBlobTensor {
+  BlobTensorPtr tensor_;
+
+public:
+  using WritableBlobTensor::operator=;
+  FF_DEFAULT_COPY(BlobTensorView)
+  BlobTensorView(const BlobTensorPtr& other);  // NOLINT
+  [[nodiscard]] const BlobTensorPtr& ptr() const { return tensor_; }
+  [[nodiscard]] BlobTensorPtr& ptr() { return tensor_; }
+  const BlobTensorPtr& operator*() const { return tensor_; }
+  BlobTensorPtr& operator*() { return tensor_; }
+};
+
 class BlobTensor : public WritableBlobTensor,
                    public LeakableTensor<BlobTensor>,
                    public std::enable_shared_from_this<BlobTensor> {
-  FF_DISALLOW_COPY(BlobTensor)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
   // NOTE: Performance will be degraded if the destructor is virtual.
@@ -151,13 +195,19 @@ public:
     return ptr;
   }
 
+  operator BlobTensorView() {  // NOLINT
+    return shared_from_this();
+  }
+  BlobTensorView view() { return *this; }
+
 protected:
+  FF_DEFAULT_COPY_AND_MOVE(BlobTensor)
   using WritableBlobTensor::WritableBlobTensor;
 };
 
 template <class Allocator = RawAllocator, class Enable = std::enable_if_t<std::is_base_of_v<RawAllocator, Allocator>>>
 class AllocableBlobTensor : public BlobTensor {
-public:
+protected:
   AllocableBlobTensor(DeviceType device, DataType dtype, uint64_t buffer_size, uint64_t offset = 0)
       : BlobTensor(device, dtype, buffer_size, offset) {
     alloc();
@@ -170,7 +220,7 @@ public:
   AllocableBlobTensor(DeviceType device, DataType dtype) : BlobTensor(device, dtype, {}) { alloc(); }
 
   template <class T>
-  AllocableBlobTensor(DeviceType device, T t) : BlobTensor(device, GetDataType<T>::value, {}) {
+  AllocableBlobTensor(DeviceType device, T&& t) : BlobTensor(device, GetDataType<T>::value, {}) {
     alloc();
     *castPtrMut<T>() = t;
   }
@@ -209,26 +259,6 @@ public:
   }
 
 private:
-  /* sync* methods only used in copy/move */
-
-  inline void syncTensorAttrs(const AllocableBlobTensor& other) {
-    // no sync dtype
-
-    shapeMut() = other.shape();
-    strideMut() = other.stride();
-  }
-  inline void syncBlob(const AllocableBlobTensor& other) {
-    // no sync buffer
-
-    blob_.device = other.device();
-    blob_.buffer_size = other.bufferSize();
-    blob_.offset = other.offset();
-  }
-
-  inline void syncAttrs(const AllocableBlobTensor& other) {
-    syncTensorAttrs(other);
-    syncBlob(other);
-  }
   inline void alloc() {
     if (!rawPtr() && bufferSize() > 0) {
       rawPtrMut() = Allocator::allocate(bufferSize());
@@ -238,7 +268,7 @@ private:
   inline void release() {
     if (rawPtr()) {
       Allocator::deallocate(rawPtr());
-      LOG(trace) << "deallocate: " << rawPtr();
+      LOG(trace) << "deallocate: " << rawPtr() << ". Use count: " << weak_from_this().use_count();
       reset();
     }
   }

@@ -7,6 +7,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS
     CACHE BOOL "")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+option(FINEFLOW_BUILD_TEST "build test" ON)
 find_package(
   Python3
   COMPONENTS Development Interpreter
@@ -31,6 +32,7 @@ set(CXX_STANDARD_NAME "c++${CMAKE_CXX_STANDARD}")
 
 if(NOT MSVC)
     set(CMAKE_CXX_FLAGS "-std=${CXX_STANDARD_NAME} ${CMAKE_CXX_FLAGS}")
+    # set(CMAKE_CXX_FLAGS "-std=${CXX_STANDARD_NAME} -fopenmp ${CMAKE_CXX_FLAGS}")
 else()
     set(CMAKE_CXX_FLAGS "/std:${CXX_STANDARD_NAME} ${CMAKE_CXX_FLAGS}")
 endif()
@@ -207,3 +209,14 @@ if(CUDAToolkit_FOUND)
   install(TARGETS ndarray_backend_cuda LIBRARY DESTINATION ${PYTHON_MODULE_PATH}
                                                COMPONENT backend)
 endif()
+if(FINEFLOW_BUILD_TEST)
+  include(FetchCatch2)
+  fetch_catch2()
+  list(APPEND CMAKE_MODULE_PATH ${Catch2_SOURCE_DIR}/extras)
+  enable_testing()
+  include(CTest)
+  include(Catch)
+
+  add_cc_test(test_tensor SRCS tests/cpp/test_tensor.cpp DEPENDS FineflowCore)
+
+endif(FINEFLOW_BUILD_TEST)

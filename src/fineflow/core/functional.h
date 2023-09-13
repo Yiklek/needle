@@ -8,20 +8,24 @@
 namespace fineflow {
 template <class R, class... Args>
 struct Functor {
-  explicit Functor(const std::string &name) : name_(name) {}
-  explicit Functor(std::string &&name) : name_(std::move(name)) {}
+  // functor on construct
+  explicit Functor(const std::string &name)
+      : name_(name), f_(RegistryFuncMgr::Get().GetValue(name_).value_or(nullptr)) {}
+  explicit Functor(std::string &&name)
+      : name_(std::move(name)), f_(RegistryFuncMgr::Get().GetValue(name_).value_or(nullptr)) {}
+  using ReturnType = Ret<R>;
 
   // core func type
-  using FuncType = std::function<R(Args...)>;
+  using FuncType = std::function<ReturnType(Args...)>;
   using RegistryFuncMgr = RegistryMgr<std::string, FuncType>;
-
-  R operator()(Args... args) {
-    TRY_ASSIGN(auto f, RegistryFuncMgr::Get().GetValue(name_))
-    return (*f)(args...);
+  ReturnType operator()(Args... args) {
+    CHECK_OR_RETURN(f_) << "functor (" << name_ << ") is not registered.";
+    return (*f_)(args...);
   }
 
 protected:
   std::string name_;
+  const FuncType *f_;
 };
 
 }  // namespace fineflow

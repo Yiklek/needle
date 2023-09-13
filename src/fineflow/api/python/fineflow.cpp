@@ -1,84 +1,43 @@
 #include "fineflow/api/python/py_functor.hpp"
 #include "fineflow/api/python/py_tensor.h"
+#include "fineflow/api/python/tensor_util.h"
 #include "fineflow/core/common/exception.h"
 #include "fineflow/core/common/fmt.hpp"
 #include "pybind11/numpy.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
+
 namespace fineflow::python_api {
 namespace py = pybind11;
-struct DataTypeToFormat;
-struct FormatToDataType;
-
-const std::string &GetTypeFormat(DataType dtype) {
-  TRY_ASSIGN_CATCH(auto r, FF_PP_ALL(RegistryMgr<DataType, std::string, DataTypeToFormat>::Get().GetValue(dtype)),
-                   { ThrowError(e); });
-  return *r;
-}
-size_t GetTypeElemSize(DataType dtype) {
-  TRY_ASSIGN_CATCH(auto r, FF_PP_ALL(RegistryMgr<DataType, size_t>::Get().GetValue(dtype)), { ThrowError(e); });
-  return *r;
-}
-
-DataType GetFormatType(const std::string &format) {
-  auto f = format;
-  // https://github.com/pybind/pybind11/issues/1908
-  if constexpr (sizeof(void *) == 8) {  // 64bit
-    if (f == "l") {
-      f = "q";
-    }
-  }
-  TRY_ASSIGN_CATCH(auto r, FF_PP_ALL(RegistryMgr<std::string, DataType, FormatToDataType>::Get().GetValue(f)),
-                   { ThrowError(e); });
-  return *r;
-}
-
-auto ToNumpy(Tensor &a) {
-  auto elem_size = **DataTypeSizeRegistryMgr::Get().GetValue(a->dtype());
-  const auto &format = GetTypeFormat(a->dtype());
-  auto t = *a;
-  if (a->offset() > 0) {
-    auto compact = PyFunctor<Tensor, const Tensor &>("compact");
-    t = compact(a);
-  }
-  auto numpy_strides = t->stride();
-  std::transform(numpy_strides.begin(), numpy_strides.end(), numpy_strides.begin(),
-                 [elem_size](auto &c) { return c * elem_size; });  // numpy sitrde is by bytes.
-
-  if (t->offset() > 0) {
-    throw RuntimeException("numpy offset must be 0.");
-  }
-  return py::array(
-      py::buffer_info(reinterpret_cast<void *>(reinterpret_cast<uint8_t *>(t->rawPtrMut()) + t->offset() * elem_size),
-                      elem_size, format, t->shape().size(), t->shape(), numpy_strides));
-}
-
-auto FromNumpy(const py::array &a, DeviceType device_type) {
-  auto b = a.request();
-  const auto dtype = GetFormatType(b.format);
-  auto out = Tensor::New(device_type, b.size * b.itemsize, dtype);
-  std::memcpy(out->rawPtrMut(), b.ptr, out->bufferSize());
-  auto elem_size = GetTypeElemSize(dtype);
-  auto numpy_strides = b.strides;
-  std::transform(numpy_strides.begin(), numpy_strides.end(), numpy_strides.begin(),
-                 [elem_size](auto &c) { return c / elem_size; });  // numpy sitrde is by bytes.
-  out->shapeMut() = b.shape;
-  out->strideMut() = numpy_strides;
-  return out;
-}
 void RegisterFill(py::module_ &m) {
-  auto fill = std::function(PyFunctor<Tensor, Tensor &, const Tensor &>("fill"));
+  auto fill = std::function(PyFunctor<void, Tensor &, const Tensor &>("fill"));
   m.def("fill", fill);
   // must capture fill function as value
   m.def("fill", [=](Tensor &t, const py::array &a) { return fill(t, FromNumpy(a, t->device())); });
 
 #define REGISTER_FILL_PYFUNCTOR(type_cpp, type_proto) \
   m.def("fill", std::function(PyFunctor<Tensor, Tensor &, type_cpp>("fill")));
-#define FOR_REGISTER_FULL_PYFUNCTOR(i, data, elem) REGISTER_FILL_PYFUNCTOR(elem, _)
+#define FOR_REGISTER_FILL_PYFUNCTOR(i, data, elem) REGISTER_FILL_PYFUNCTOR(elem, _)
 #define REGISTER_FILL_TYPE_SEQ (double)(bool)(int64_t)(std::complex<float>)(std::complex<double>)
-  BOOST_PP_SEQ_FOR_EACH(FOR_REGISTER_FULL_PYFUNCTOR, _, REGISTER_FILL_TYPE_SEQ)
-#undef FOR_REGISTER_FULL_FUNCTOR
+  BOOST_PP_SEQ_FOR_EACH(FOR_REGISTER_FILL_PYFUNCTOR, _, REGISTER_FILL_TYPE_SEQ)
+#undef FOR_REGISTER_FILL_FUNCTOR
 #undef REGISTER_FILL_FUNCTOR
+}
+
+void RegisterAssign(py::module_ &m) {
+  auto assign = std::function(PyFunctor<void, Tensor &, const Tensor &>("assign"));
+  const auto *func_name = "assign";
+  m.def(func_name, assign);
+  // must capture fill function as value
+  m.def(func_name, [=](Tensor &t, const py::array &a) { return assign(t, FromNumpy(a, t->device())); });
+
+#define REGISTER_ASSIGN_PYFUNCTOR(type_cpp, type_proto) \
+  m.def(func_name, std::function(PyFunctor<Tensor, Tensor &, type_cpp>(func_name)));
+#define FOR_REGISTER_ASSIGN_PYFUNCTOR(i, data, elem) REGISTER_ASSIGN_PYFUNCTOR(elem, _)
+#define REGISTER_ASSIGN_TYPE_SEQ (double)(bool)(int64_t)(std::complex<float>)(std::complex<double>)
+  BOOST_PP_SEQ_FOR_EACH(FOR_REGISTER_ASSIGN_PYFUNCTOR, _, REGISTER_ASSIGN_TYPE_SEQ)
+#undef FOR_REGISTER_ASSIGN_PYFUNCTOR
+#undef REGISTER_ASSIGN_FUNCTOR
 }
 
 void RegisterAdd(py::module_ &m) {
@@ -102,6 +61,7 @@ PYBIND11_MODULE(PYBIND11_CURRENT_MODULE_NAME, m) {
   // m.attr("__tile_size__") = TILE;
   RegisterFill(m);
   RegisterAdd(m);
+  RegisterAssign(m);
   py::enum_<DeviceType>(m, "DeviceType")
       .value("cpu", DeviceType::kCPU)
       .value("cuda", DeviceType::kCUDA)

@@ -5,7 +5,7 @@
 namespace fineflow {
 
 template <class T>
-void Compact(const BlobTensor& a, BlobTensor* out) {
+void Compact(const BlobTensorView& a, BlobTensorView* out) {
   /**
    * Set entries in out to be the sum of correspondings entires in a and b.
    */
@@ -41,7 +41,7 @@ class CompactKernelImpl final : public CompactKernel {
   void compute(KernelComputeContext* ctx) const override {
     auto in0 = ctx->fetchTensor("in", 0).value();
     auto out = ctx->fetchTensor("out", 0).value();
-    Compact<T>(*in0, out.get());
+    Compact<T>(in0, &out);
   }
 };
 

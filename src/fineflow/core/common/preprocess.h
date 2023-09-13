@@ -24,9 +24,11 @@
 
 #define FF_PP_JOIN_I(s, state, x) FF_PP_JOIN_STATE_NEXT_TUPLE(state, x)
 
-#define FF_PP_JOIN(sep, ...)                                                                          \
-  FF_PP_JOIN_STATE_RET(BOOST_PP_SEQ_FOLD_LEFT(FF_PP_JOIN_I, FF_PP_JOIN_START_TUPLE(sep, __VA_ARGS__), \
-                                              BOOST_PP_SEQ_TAIL(BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))))
+#define FF_PP_JOIN_SEQ(sep, SEQ)                                                                                 \
+  FF_PP_JOIN_STATE_RET(BOOST_PP_SEQ_FOLD_LEFT(FF_PP_JOIN_I, FF_PP_JOIN_START_TUPLE(sep, BOOST_PP_SEQ_HEAD(SEQ)), \
+                                              BOOST_PP_SEQ_TAIL(SEQ)))
+#define FF_PP_JOIN(sep, ...) FF_PP_JOIN_SEQ(sep, BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))
 
 #define FF_PP_JOIN_U(...) FF_PP_JOIN(_, __VA_ARGS__)
+
 #endif  // FINEFLOW_CORE_COMMON_PREPROCESS_H_

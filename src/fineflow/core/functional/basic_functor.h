@@ -15,14 +15,14 @@ class AddFunctor {
 public:
   AddFunctor() = default;
 
-  Ret<BlobTensorPtr> operator()(const BlobTensorPtr& a, const BlobTensorPtr& b);
+  Ret<BlobTensorView> operator()(const BlobTensorView& a, const BlobTensorView& b);
 };
 using AddFunctorType = FuncType<AddFunctor>;
 class CompactFunctor {
 public:
   CompactFunctor() = default;
 
-  Ret<BlobTensorPtr> operator()(const BlobTensorPtr& a);
+  Ret<BlobTensorView> operator()(const BlobTensorView& a);
 };
 using CompactFunctorType = FuncType<CompactFunctor>;
 
@@ -31,7 +31,15 @@ class FillFunctor {
 public:
   FillFunctor() = default;
 
-  Ret<BlobTensorPtr> operator()(BlobTensorPtr& dst, T scalar);
+  Ret<void> operator()(BlobTensorView& dst, T scalar);
+};
+
+template <class T>
+class AssignFunctor {
+public:
+  AssignFunctor() = default;
+
+  Ret<void> operator()(BlobTensorView& dst, T src);
 };
 }  // namespace fineflow
 #endif  // FINEFLOW_CORE_FUNCTIONAL_BASIC_FUNCTOR_H_

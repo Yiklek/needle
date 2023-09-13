@@ -58,20 +58,6 @@ public:                                                                         
                                                                                          \
 protected:                                                                               \
   TensorAttrsHolder tensor_attrs_;
-//
-class ReadableTensor : public ReadableTensorTrait {
-public:
-  ReadableTensor(const DataType& dtype, const Shape& shape) : ReadableTensor(dtype, shape, GetCompactStride(shape)) {}
-  ReadableTensor(const DataType& dtype, Shape shape, Stride stride)
-      : tensor_attrs_(dtype, std::move(shape), std::move(stride)) {}
-
-  [[nodiscard]] const Shape& shape() const override { return tensor_attrs_.shape_; };     // { return shape_; };
-  [[nodiscard]] const Stride& stride() const override { return tensor_attrs_.stride_; };  // { return stride_; };
-  [[nodiscard]] DataType dtype() const override { return tensor_attrs_.dtype_; };         // { return dtype_; };
-
-protected:
-  TensorAttrsHolder tensor_attrs_;
-};
 
 #define FF_COMPOSE_WRITABLE_TENSOR(class)                                                                   \
   static_assert(&class ::tensor_attrs_ != nullptr, FF_PP_STRINGIZE(class) "must compose readable tensor."); \
@@ -79,11 +65,6 @@ protected:
 public:                                                                                                     \
   Shape& shapeMut() override { return tensor_attrs_.shape_; };                                              \
   Stride& strideMut() override { return tensor_attrs_.stride_; };
-class WritableTensor : public ReadableTensor, public WritableTensorTrait {
-public:
-  using ReadableTensor::ReadableTensor;
-  Shape& shapeMut() override { return tensor_attrs_.shape_; };
-  Stride& strideMut() override { return tensor_attrs_.stride_; };
-};
+
 }  // namespace fineflow
 #endif
