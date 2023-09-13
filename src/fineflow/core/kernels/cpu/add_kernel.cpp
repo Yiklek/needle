@@ -14,7 +14,7 @@ void EwiseAdd(const BlobTensorView& a, const BlobTensorView& b, BlobTensorView* 
   const T* a_ptr = a.castPtr<T>();
   const T* b_ptr = b.castPtr<T>();
 
-// #pragma omp parallel for
+  // #pragma omp parallel for
   for (size_t i = 0; i < size; i++) {
     out_ptr[i] = a_ptr[i] + b_ptr[i];
   }

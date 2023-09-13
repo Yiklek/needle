@@ -74,7 +74,7 @@ Ret<void> FillFunctor<const BlobTensorView&>::operator()(BlobTensorView& dst, co
 
 template <class T>
 Ret<void> FillFunctor<T>::operator()(BlobTensorView& dst, T scalar) {
-  return FillFunctor<const BlobTensorView&>()(dst, DeriveScalarOnSameDevice(dst, scalar)->view());
+  return FillFunctor<const BlobTensorView&>()(dst, DeriveScalarOnSameDevice(dst, scalar));
 }
 
 template <>
@@ -93,7 +93,7 @@ Ret<void> AssignFunctor<const BlobTensorView&>::operator()(BlobTensorView& dst, 
 
 template <class T>
 Ret<void> AssignFunctor<T>::operator()(BlobTensorView& dst, T src) {
-  return AssignFunctor<const BlobTensorView&>()(dst, DeriveScalarOnSameDevice(dst, src)->view());
+  return AssignFunctor<const BlobTensorView&>()(dst, DeriveScalarOnSameDevice(dst, src));
 }
 
 }  // namespace fineflow

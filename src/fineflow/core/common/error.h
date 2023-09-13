@@ -12,6 +12,7 @@
 #include "fineflow/core/common/hash.hpp"
 #include "fineflow/core/common/preprocess.h"
 #include "fineflow/core/common/result_types.h"
+
 namespace fineflow {
 inline std::string RemoveProjectPathPrefix(const std::string& filename) {
 #if defined(FINEFLOW_SOURCE_DIR) && defined(FINEFLOW_BINARY_DIR)

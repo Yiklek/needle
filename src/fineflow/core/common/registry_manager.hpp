@@ -1,4 +1,3 @@
-
 #ifndef FINEFLOW_CORE_COMMON_REGISTER_MANAGER_HPP_
 #define FINEFLOW_CORE_COMMON_REGISTER_MANAGER_HPP_
 #include "fineflow/core/common/hash_container.h"
@@ -23,7 +22,7 @@ public:
             class = std::enable_if_t<std::is_same_v<ValueT, Value>>>
   Ret<void> Register(KeyT&& key, ValueT&& value) {
     CHECK_OR_RETURN(result_.emplace(std::forward<KeyT>(key), std::forward<ValueT>(value)).second);
-        // << "Register key: " << key << " failed.";
+    // << "Register key: " << key << " failed.";
     return Ok();
   }
   Ret<const Value* const> GetValue(const Key& key) {

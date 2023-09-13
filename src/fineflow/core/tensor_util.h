@@ -11,11 +11,11 @@ inline BlobTensorPtr DeriveEmptyTensorLike(const BlobTensorView& tensor) {
 }
 
 template <class T, class = std::enable_if_t<is_cpu_native_v<T>>>
-inline BlobTensorPtr DeriveScalarOnSameDevice(const BlobTensorView& tensor, T scalar) {
+inline BlobTensorView DeriveScalarOnSameDevice(const BlobTensorView& tensor, T scalar) {
   if (tensor.device() == DeviceType::kCPU) {
     return CpuTensor::New(std::forward<T>(scalar));
   }
-  return nullptr;
+  return BlobTensorView(nullptr);
 }
 inline BlobTensorView CloneTensor(const BlobTensorView& tensor) {
   if (tensor.device() == DeviceType::kCPU) {
