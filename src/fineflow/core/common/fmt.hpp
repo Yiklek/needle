@@ -17,14 +17,17 @@ inline constexpr bool IsStreamableV =
       std::is_convertible_v<T, std::string_view> || std::is_convertible_v<T, std::string> ||
       std::is_same_v<T, std::string_view> || (std::is_convertible_v<T, int> && !std::is_enum_v<T>));
 
+template <typename T, typename Char>
+using has_formatter = std::is_constructible<fmt::formatter<T, Char>>;
+
 template <typename T>
-using ostreamable_t = std::enable_if_t<fmt::has_formatter<T, fmt::format_context>::value && IsStreamableV<T>>;
+using ostreamable_t = std::enable_if_t<has_formatter<T, fmt::format_context>::value && IsStreamableV<T>>;
 template <typename T>
-using formatable_t = std::enable_if_t<fmt::has_formatter<T, fmt::format_context>::value>;
+using formatable_t = std::enable_if_t<has_formatter<T, fmt::format_context>::value>;
 
 #if __cplusplus >= 202002L
 template <typename T>
-concept formatable = fmt::has_formatter<T, fmt::format_context>::value;
+concept formatable = has_formatter<T, fmt::format_context>::value;
 
 // clang-format off
 template <typename T>
@@ -134,6 +137,13 @@ inline std::ostringstream& operator<<(std::ostringstream& os, const T& t) {
   os << fmt::to_string(t);
   return os;
 }
+
+template <typename T1, typename T2>
+inline std::ostringstream& operator<<(std::ostringstream& os, const std::pair<T1, T2>& pair) {
+  os << "<" << fmt::to_string(pair.first) << "," << fmt::to_string(pair.second) << ">";
+  return os;
+}
+
 }  // namespace std
 // NOLINTEND
 #endif  // FINEFLOW_CORE_COMMON_FMT_HPP_

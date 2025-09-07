@@ -77,8 +77,7 @@ struct Ok {
 #define RET_NAME FF_PP_JOIN_U(_ret, __COUNTER__, __LINE__)
 
 #define TRY_ASSIGN(lhs, rexpr) \
-  TRY_ASSIGN_CATCH_IMPL(       \
-      RET_NAME, lhs, rexpr, { return e; }, FF_PP_STRINGIZE(TRY_ASSIGN(lhs, rexpr)))
+  TRY_ASSIGN_CATCH_IMPL(RET_NAME, lhs, rexpr, { return e; }, FF_PP_STRINGIZE(TRY_ASSIGN(lhs, rexpr)))
 
 #define TRY_ASSIGN_CATCH(lhs, rexpr, catch_exprs)                                \
   TRY_ASSIGN_CATCH_IMPL(RET_NAME, lhs, FF_PP_ALL(rexpr), FF_PP_ALL(catch_exprs), \
@@ -87,9 +86,7 @@ struct Ok {
 #define TRY_CATCH(rexpr, catch_exprs) \
   TRY_CATCH_IMPL(RET_NAME, FF_PP_ALL(rexpr), FF_PP_ALL(catch_exprs), FF_PP_STRINGIZE(TRY_CATCH(FF_PP_ALL(rexpr), ...)))
 
-#define TRY(rexpr) \
-  TRY_CATCH_IMPL(  \
-      RET_NAME, rexpr, { return e; }, FF_PP_STRINGIZE(TRY(rexpr)))
+#define TRY(rexpr) TRY_CATCH_IMPL(RET_NAME, rexpr, { return e; }, FF_PP_STRINGIZE(TRY(rexpr)))
 
 }  // namespace fineflow
 #endif

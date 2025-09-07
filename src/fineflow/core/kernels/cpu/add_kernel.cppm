@@ -1,9 +1,16 @@
+module;
 #include "fineflow/core/common/device_type.pb.h"
-#include "fineflow/core/common/registry_manager.hpp"
-#include "fineflow/core/kernels/add_kernel.h"
+#include "fineflow/core/op_kernel.h"
 #include "fineflow/core/op_kernel_factory.h"
+export module cpu_add_kernel;
+// import add_kernel;
+export {
+#include "fineflow/core/kernels/add_kernel.h"
+}
 namespace fineflow {
 
+namespace {
+REGISTER_KERNEL(DeviceType::kCPU, AddKernelFactory);
 template <class T>
 void EwiseAdd(const BlobTensorView& a, const BlobTensorView& b, BlobTensorView* out) {
   /**
@@ -19,7 +26,6 @@ void EwiseAdd(const BlobTensorView& a, const BlobTensorView& b, BlobTensorView* 
     out_ptr[i] = a_ptr[i] + b_ptr[i];
   }
 }
-
 template <class T>
 class AddKernelImpl final : public AddKernel {
   void compute(KernelComputeContext* ctx) const override {
@@ -29,11 +35,11 @@ class AddKernelImpl final : public AddKernel {
     EwiseAdd<T>(in0, in1, &out);
   }
 };
-
 template <typename T>
 std::unique_ptr<AddKernel> NewAdd() {
-  return std::unique_ptr<AddKernel>(new AddKernelImpl<T>());
+  return std::make_unique<AddKernelImpl<T>>();
 }
+}  // namespace
 
 Ret<std::unique_ptr<AddKernel>> AddKernelFactory::create(DataType dtype) {
   static const std::map<DataType, std::function<std::unique_ptr<AddKernel>()>> new_add_handle{
@@ -50,7 +56,4 @@ Ret<std::unique_ptr<AddKernel>> AddKernelFactory::create(DataType dtype) {
   CHECK_OR_RETURN(kernel) << "AddKernel for type: " << fmt::to_string(dtype) << " has not implemented.";
   return kernel;
 };
-namespace {
-REGISTER_KERNEL(DeviceType::kCPU, AddKernelFactory);
-}  // namespace
 }  // namespace fineflow

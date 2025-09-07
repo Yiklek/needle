@@ -18,14 +18,16 @@ public:
     return mgr;
   }
 
-  template <class KeyT = Key, class ValueT = Value, class = std::enable_if_t<std::is_same_v<KeyT, Key>>,
-            class = std::enable_if_t<std::is_same_v<ValueT, Value>>>
-  Ret<void> Register(KeyT&& key, ValueT&& value) {
-    CHECK_OR_RETURN(result_.emplace(std::forward<KeyT>(key), std::forward<ValueT>(value)).second);
+  Ret<void> Register(Key&& key, Value&& value) {
+    // std::cout << "Register: " << key << std::endl;
+    // std::cerr << "Register: key:" << key << " " << FF_PP_STACK_FUNC << std::endl;
+    // int i = 0;
+    CHECK_OR_RETURN(result_.emplace(std::forward<Key>(key), std::forward<Value>(value)).second);
     // << "Register key: " << key << " failed.";
-    return Ok();
+    return {};
   }
   Ret<const Value* const> GetValue(const Key& key) {
+    // std::cerr << "GetValue: key:" << key << " " << FF_PP_STACK_FUNC << std::endl;
     auto it = result_.find(key);
     CHECK_OR_RETURN(it != result_.end()) << "RegistryMgr Value for key:(" << key << ") not found. ";
     return &(it->second);
@@ -49,9 +51,8 @@ public:
   Key& key() { return key_; }
   Value& finish() { return value_; }
 
-  template <class ValueT = Value, class = std::enable_if_t<std::is_same_v<ValueT, Value>>>
-  Registry<Key, Value>&& setValue(ValueT&& value) && {
-    value_ = std::forward<ValueT>(value);
+  Registry<Key, Value>&& setValue(Value&& value) && {
+    value_ = std::forward<Value>(value);
     return std::move(*this);
   }
 };
@@ -59,10 +60,11 @@ public:
 template <class Key, class Value, class Type = void>
 struct RegisterTrigger final {
   RegisterTrigger(const Registry<Key, Value>& registry) {  // NOLINT
-    RegistryMgr<Key, Value, Type>::Get().Register(registry.key(), registry.finish());
+    std::cout << "RegisterTrigger: " << registry.key() << std::endl;
+    (void)RegistryMgr<Key, Value, Type>::Get().Register(registry.key(), registry.finish());
   }
   RegisterTrigger(Registry<Key, Value>&& registry) {  // NOLINT
-    RegistryMgr<Key, Value, Type>::Get().Register(std::move(registry.key()), std::move(registry.finish()));
+    (void)RegistryMgr<Key, Value, Type>::Get().Register(std::move(registry.key()), std::move(registry.finish()));
   }
 };
 

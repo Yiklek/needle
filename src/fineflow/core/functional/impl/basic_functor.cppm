@@ -1,13 +1,19 @@
+module;
 #include "fineflow/core/common/preprocess.h"
 #include "fineflow/core/common/result.hpp"
 #include "fineflow/core/cpu/cpu_tensor.h"
-#include "fineflow/core/functional/basic_functor.h"
-#include "fineflow/core/kernels/add_kernel.h"
-#include "fineflow/core/kernels/assign_kernel.h"
-#include "fineflow/core/kernels/compact_kernel.h"
-#include "fineflow/core/kernels/fill_kernel.h"
+// #include "fineflow/core/kernels/add_kernel.h"
+// #include "fineflow/core/kernels/assign_kernel.h"
+// #include "fineflow/core/kernels/compact_kernel.h"
+// #include "fineflow/core/kernels/fill_kernel.h"
+#include "fineflow/core/op_kernel.h"
 #include "fineflow/core/tensor_util.h"
-
+export module func_impl;
+import cpu_add_kernel;
+import cpu_assign_kernel;
+import cpu_compact_kernel;
+import cpu_fill_kernel;
+#include "fineflow/core/functional/basic_functor.h"
 namespace fineflow {
 
 namespace {

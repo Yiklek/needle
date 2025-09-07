@@ -1,9 +1,15 @@
-#include "fineflow/core/common/device_type.pb.h"
-#include "fineflow/core/common/registry_manager.hpp"
-#include "fineflow/core/kernels/assign_kernel.h"
+module;
+#include "fineflow/core/op_kernel.h"
 #include "fineflow/core/op_kernel_factory.h"
+export module cpu_assign_kernel;
+
+export {
+#include "fineflow/core/kernels/assign_kernel.h"
+}
 namespace fineflow {
 
+// namespace {
+REGISTER_KERNEL(DeviceType::kCPU, AssignKernelFactory);
 /**
  * @brief Assign buffer.
  *
@@ -52,8 +58,9 @@ class AssignKernelImpl final : public AssignKernel {
 
 template <typename T>
 std::unique_ptr<AssignKernel> NewAssign() {
-  return std::unique_ptr<AssignKernel>(new AssignKernelImpl<T>());
+  return std::make_unique<AssignKernelImpl<T>>();
 }
+// }  // namespace
 
 Ret<std::unique_ptr<AssignKernel>> AssignKernelFactory::create(DataType dtype) {
   static const std::map<DataType, std::function<std::unique_ptr<AssignKernel>()>> new_add_handle{
@@ -70,7 +77,4 @@ Ret<std::unique_ptr<AssignKernel>> AssignKernelFactory::create(DataType dtype) {
   CHECK_OR_RETURN(kernel) << "AssignKernel for type: " << fmt::to_string(dtype) << " has not implemented.";
   return kernel;
 };
-namespace {
-REGISTER_KERNEL(DeviceType::kCPU, AssignKernelFactory);
-}  // namespace
 }  // namespace fineflow

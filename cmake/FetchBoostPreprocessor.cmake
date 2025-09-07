@@ -7,7 +7,7 @@ function(fetch_boost_preprocessor)
     CPMAddPackage(
       NAME boost_preprocessor
       GITHUB_REPOSITORY boostorg/preprocessor
-      GIT_TAG boost-1.83.0
+      GIT_TAG boost-1.89.0
       GIT_SHALLOW ON
       EXCLUDE_FROM_ALL ON)
   endif()

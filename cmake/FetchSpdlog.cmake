@@ -7,7 +7,7 @@ function(fetch_spdlog)
     CPMAddPackage(
       NAME spdlog
       GITHUB_REPOSITORY gabime/spdlog
-      GIT_TAG v1.11.0
+      GIT_TAG v1.15.3
       GIT_SHALLOW ON
       EXCLUDE_FROM_ALL ON)
   endif()

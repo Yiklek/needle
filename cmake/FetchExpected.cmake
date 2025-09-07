@@ -7,7 +7,7 @@ function(fetch_expected)
     CPMAddPackage(
       NAME expected
       GITHUB_REPOSITORY TartanLlama/expected
-      GIT_TAG v1.1.0 OPTIONS "EXPECTED_BUILD_TESTS OFF"
+      GIT_TAG v1.3.1 OPTIONS "EXPECTED_BUILD_TESTS OFF"
       GIT_SHALLOW ON
       EXCLUDE_FROM_ALL ON)
   endif()

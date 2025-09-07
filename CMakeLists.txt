@@ -1,4 +1,11 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.28)
+
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+include(CppModules)
+include(CppModulesClang)
+
+# set(CMAKE_CXX_STANDARD 17)
+# set(CMAKE_CXX_STANDARD 23)
 project(needle C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -6,7 +13,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS
     ON
     CACHE BOOL "")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 option(FINEFLOW_BUILD_TEST "build test" ON)
 find_package(
   Python3
@@ -23,18 +29,16 @@ execute_process(
 message(STATUS ${__pybind_path})
 find_package(pybind11 PATHS ${__pybind_path})
 include(Pybind11)
+# set(CMAKE_CXX_VISIBILITY_PRESET "hidden")
 
-# set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_VISIBILITY_PRESET "hidden")
 
 set(CXX_STANDARD_NAME "c++${CMAKE_CXX_STANDARD}")
 
 if(NOT MSVC)
-    set(CMAKE_CXX_FLAGS "-std=${CXX_STANDARD_NAME} ${CMAKE_CXX_FLAGS}")
-    # set(CMAKE_CXX_FLAGS "-std=${CXX_STANDARD_NAME} -fopenmp ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-std=${CXX_STANDARD_NAME} ${CMAKE_CXX_FLAGS}")
+  # set(CMAKE_CXX_FLAGS "-std=${CXX_STANDARD_NAME} -fopenmp ${CMAKE_CXX_FLAGS}")
 else()
-    set(CMAKE_CXX_FLAGS "/std:${CXX_STANDARD_NAME} ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "/std:${CXX_STANDARD_NAME} ${CMAKE_CXX_FLAGS}")
 endif()
 
 set(PYTHON_MODULE_PATH needle/backend_ndarray)
@@ -99,36 +103,41 @@ file(GLOB FINEFLOW_CORE_COMMON_SRCS  src/fineflow/core/common/*.cpp)
 add_library(FineflowCommon ${FINEFLOW_CORE_COMMON_SRCS})
 target_link_libraries(FineflowCommon PUBLIC proto-objects ThirdCommon)
 
-file(GLOB FINEFLOW_CORE_FUNCTOR_SRCS  src/fineflow/core/functional/impl/*_functor.cpp)
-
-add_library(FineflowCoreFunctionalObj OBJECT
-    ${FINEFLOW_CORE_FUNCTOR_SRCS}
+file(GLOB FINEFLOW_CORE_CPU_KERNEL_MODULE_SRCS  src/fineflow/core/kernels/cpu/*_kernel.cppm)
+add_cpp_module_library(FineflowCoreKernelObj OBJECT
+  SRCS ${FINEFLOW_CORE_CPU_KERNEL_MODULE_SRCS}
 )
+target_link_libraries(FineflowCoreKernelObj PUBLIC FineflowCommon)
 
-target_link_libraries(FineflowCoreFunctionalObj PUBLIC FineflowCommon)
-
-add_library(FineflowCoreFunctional SHARED)
-target_link_libraries(FineflowCoreFunctional PUBLIC FineflowCoreFunctionalObj)
-
-
-file(GLOB FINEFLOW_CORE_SRCS  src/fineflow/core/*.cpp)
-add_library(FineflowCore ${FINEFLOW_CORE_SRCS})
-target_link_libraries(FineflowCore PUBLIC FineflowCoreKernel)
-
-file(GLOB FINEFLOW_CORE_CPU_KERNEL_SRCS  src/fineflow/core/kernels/cpu/*_kernel.cpp)
-add_library(FineflowCoreKernel
-    ${FINEFLOW_CORE_CPU_KERNEL_SRCS})
-target_link_libraries(FineflowCoreKernel PUBLIC FineflowCommon)
+add_library(FineflowCoreKernel STATIC)
+target_link_libraries(FineflowCoreKernel PUBLIC FineflowCoreKernelObj FineflowCommon)
 
 add_pybind11_module(FineflowPyApi
     SRCS src/fineflow/api/python/fineflow.cpp
-    DEPENDS FineflowCore FineflowCoreFunctionalObj
+    DEPENDS $<LINK_LIBRARY:WHOLE_ARCHIVE,FineflowCore>
+)
+
+
+file(GLOB FINEFLOW_CORE_FUNCTOR_MODULE_SRCS  src/fineflow/core/functional/impl/*_functor.cppm)
+add_cpp_module_library(FineflowCoreFunctionalObj OBJECT
+  SRCS ${FINEFLOW_CORE_FUNCTOR_MODULE_SRCS}
+)
+target_link_libraries(FineflowCoreFunctionalObj PUBLIC FineflowCommon FineflowCoreKernel)
+
+add_library(FineflowCoreFunctional STATIC)
+target_link_libraries(FineflowCoreFunctional PUBLIC FineflowCoreFunctionalObj FineflowCommon)
+
+file(GLOB FINEFLOW_CORE_SRCS  src/fineflow/core/*.cpp)
+add_library(FineflowCore ${FINEFLOW_CORE_SRCS})
+target_link_libraries(FineflowCore PUBLIC
+  $<LINK_LIBRARY:WHOLE_ARCHIVE,FineflowCoreFunctional>
+  $<LINK_LIBRARY:WHOLE_ARCHIVE,FineflowCoreKernel>
 )
 
 
 add_compile_definitions(FINEFLOW_SOURCE_DIR=${PROJECT_SOURCE_DIR} FINEFLOW_BINARY_DIR=${PROJECT_BINARY_DIR})
 if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
-    add_compile_definitions(DEBUG)
+  add_compile_definitions(DEBUG)
 endif()
 
 # add_executable(run run.cpp)

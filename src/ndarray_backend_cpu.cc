@@ -30,6 +30,7 @@ struct AlignedArray {
   scalar_t* ptr;
   size_t size;
 };
+namespace {
 
 void Fill(AlignedArray* out, scalar_t val) {
   /**
@@ -421,6 +422,7 @@ void ReduceSum(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
   }
   /// END YOUR SOLUTION
 }
+}  // namespace
 
 PYBIND11_MODULE(ndarray_backend_cpu, m) {
   namespace py = pybind11;

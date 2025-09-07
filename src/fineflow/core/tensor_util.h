@@ -10,8 +10,8 @@ inline BlobTensorPtr DeriveEmptyTensorLike(const BlobTensorView& tensor) {
   return nullptr;
 }
 
-template <class T, class = std::enable_if_t<is_cpu_native_v<T>>>
-inline BlobTensorView DeriveScalarOnSameDevice(const BlobTensorView& tensor, T scalar) {
+template <class T>
+inline BlobTensorView DeriveScalarOnSameDevice(const BlobTensorView& tensor, T scalar) requires (is_cpu_native_v<T>) {
   if (tensor.device() == DeviceType::kCPU) {
     return CpuTensor::New(std::forward<T>(scalar));
   }
