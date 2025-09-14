@@ -1,15 +1,31 @@
 module;
-#include "fineflow/core/op_kernel.h"
-#include "fineflow/core/op_kernel_factory.h"
-export module cpu_compact_kernel;
+#include "fineflow/core/common/result.h"
+#include "fineflow/core/common/util.h"
+#include "kernel_factor.h"
 
-export {
-#include "fineflow/core/kernels/compact_kernel.h"
-}
-namespace fineflow {
+export module fineflow.core.op_kernel.cpu.compact_kernel;
+import fineflow.core.op_kernel;
+import fineflow.core.op_kernel_factory;
+import fineflow.core.blob_tensor;
+import fineflow.core.common.error;
+import fineflow.core.common.data_type_proto;
+import fineflow.core.common.device_type_proto;
+import fineflow.core.common.fmt;
+import fineflow.core.common.registry_manager;
+import std;
+import std.compat;
+export namespace fineflow {
 
-namespace {
-REGISTER_KERNEL(DeviceType::kCPU, CompactKernelFactory);
+class CompactKernel : public OpKernel {
+public:
+  FF_DISALLOW_COPY_AND_MOVE(CompactKernel);
+  CompactKernel() = default;
+};
+
+class CompactKernelFactory final : public OpKernelFactory<CompactKernelFactory, CompactKernel> {
+public:
+  static Ret<std::unique_ptr<CompactKernel>> create(DataType dtype);
+};
 template <class T>
 void Compact(const BlobTensorView& a, BlobTensorView* out) {
   /**
@@ -55,21 +71,19 @@ template <typename T>
 std::unique_ptr<CompactKernel> NewCompact() {
   return std::make_unique<CompactKernelImpl<T>>();
 }
-}  // namespace
 
 Ret<std::unique_ptr<CompactKernel>> CompactKernelFactory::create(DataType dtype) {
   static const std::map<DataType, std::function<std::unique_ptr<CompactKernel>()>> new_add_handle{
-
-#define MAKE_NEW_COMPACT_ENTRY(type_cpp, type_proto) {type_proto, NewCompact<type_cpp>},
-#define FOR_MAKE_NEW_COMPACT_ENTRY(i, data, elem) FF_PP_FORWARD(MAKE_NEW_COMPACT_ENTRY, BOOST_PP_TUPLE_ENUM(elem))
-      BOOST_PP_SEQ_FOR_EACH(FOR_MAKE_NEW_COMPACT_ENTRY, _, CPU_PRIMITIVE_NATIVE_TYPE_SEQ)
-#undef FOR_MAKE_NEW_ADD_ENTRY
-#undef MAKE_NEW_ADD_ENTRY
-
-  };
+      MAKE_NEW_FACTORY(NewCompact)};
 
   auto kernel = NewKernalFromHandlers(new_add_handle, dtype);
-  CHECK_OR_RETURN(kernel) << "AddKernel for type: " << fmt::to_string(dtype) << " has not implemented.";
+  CHECK_OR_RETURN(kernel) << "AddKernel for type: " << std::to_string(dtype) << " has not implemented.";
   return kernel;
 };
+}  // namespace fineflow
+namespace fineflow {
+namespace {
+REGISTER_KERNEL_FACTORY(DeviceType::kCPU, CompactKernelFactory);
+}  // namespace
+
 }  // namespace fineflow

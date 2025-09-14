@@ -1,45 +1,17 @@
-#ifndef FINEFLOW_CORE_FUNCTIONAL_BASIC_FUNCTOR_H_
-#define FINEFLOW_CORE_FUNCTIONAL_BASIC_FUNCTOR_H_
-#include "fineflow/core/blob_tensor.h"
-#include "fineflow/core/common/function_traits.hpp"
-#include "fineflow/core/common/registry_manager.hpp"
-namespace fineflow {
-
+#ifndef FINEFLOW_CORE_FUNCTIONAL_IMPL_BASIC_FUNCTOR_H_
+#define FINEFLOW_CORE_FUNCTIONAL_IMPL_BASIC_FUNCTOR_H_
+#include "fineflow/core/common/data_type.h"
+#include "fineflow/core/common/preprocess.h"
+#include "fineflow/core/common/registry.h"
 #define REGISTER_FUNCTOR(functor, key)                                        \
   /* NOLINTBEGIN */                                                           \
   REGISTER_KEY_WITH_CLASS(std::string, std::function<FuncType<functor>>, key) \
       .setValue(std::function<FuncType<functor>>(functor()));                 \
   /* NOLINTEND */
 
-class AddFunctor {
-public:
-  AddFunctor() = default;
+#define REGISTER_FILL_FUNCTOR(type_cpp, type_proto) REGISTER_FUNCTOR(FillFunctor<type_cpp>, "fill")
+#define MAP_REGISTER_FULL_FUNCTOR(tuple) FF_PP_FORWARD(REGISTER_FILL_FUNCTOR, FF_TUPLE_TO_ENUM(tuple))
 
-  Ret<BlobTensorView> operator()(const BlobTensorView& a, const BlobTensorView& b);
-};
-using AddFunctorType = FuncType<AddFunctor>;
-class CompactFunctor {
-public:
-  CompactFunctor() = default;
-
-  Ret<BlobTensorView> operator()(const BlobTensorView& a);
-};
-using CompactFunctorType = FuncType<CompactFunctor>;
-
-template <class T>
-class FillFunctor {
-public:
-  FillFunctor() = default;
-
-  Ret<void> operator()(BlobTensorView& dst, T scalar);
-};
-
-template <class T>
-class AssignFunctor {
-public:
-  AssignFunctor() = default;
-
-  Ret<void> operator()(BlobTensorView& dst, T src);
-};
-}  // namespace fineflow
-#endif  // FINEFLOW_CORE_FUNCTIONAL_BASIC_FUNCTOR_H_
+#define REGISTER_ASSIGN_FUNCTOR(type_cpp, type_proto) REGISTER_FUNCTOR(AssignFunctor<type_cpp>, "assign")
+#define MAP_REGISTER_ASSIGN_FUNCTOR(tuple) FF_PP_FORWARD(REGISTER_ASSIGN_FUNCTOR, FF_TUPLE_TO_ENUM(tuple))
+#endif  // FINEFLOW_CORE_FUNCTIONAL_IMPL_BASIC_FUNCTOR_H_

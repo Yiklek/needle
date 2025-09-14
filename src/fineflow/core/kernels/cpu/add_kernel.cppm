@@ -1,16 +1,32 @@
 module;
-#include "fineflow/core/common/device_type.pb.h"
-#include "fineflow/core/op_kernel.h"
-#include "fineflow/core/op_kernel_factory.h"
-export module cpu_add_kernel;
-// import add_kernel;
-export {
-#include "fineflow/core/kernels/add_kernel.h"
-}
-namespace fineflow {
+#include "fineflow/core/common/result.h"
+#include "fineflow/core/common/util.h"
+#include "kernel_factor.h"
 
-namespace {
-REGISTER_KERNEL(DeviceType::kCPU, AddKernelFactory);
+export module fineflow.core.op_kernel.cpu.add_kernel;
+import fineflow.core.op_kernel;
+import fineflow.core.op_kernel_factory;
+import fineflow.core.blob_tensor;
+import fineflow.core.common.error;
+import fineflow.core.common.data_type_proto;
+import fineflow.core.common.device_type_proto;
+import fineflow.core.common.fmt;
+import fineflow.core.common.registry_manager;
+import std;
+import std.compat;
+
+export namespace fineflow {
+class AddKernelFactory;
+class AddKernel : public OpKernel {
+public:
+  FF_DISALLOW_COPY_AND_MOVE(AddKernel);
+  AddKernel() = default;
+};
+
+class AddKernelFactory final : public OpKernelFactory<AddKernelFactory, AddKernel> {
+public:
+  static Ret<std::unique_ptr<AddKernel>> create(DataType dtype);
+};
 template <class T>
 void EwiseAdd(const BlobTensorView& a, const BlobTensorView& b, BlobTensorView* out) {
   /**
@@ -39,21 +55,18 @@ template <typename T>
 std::unique_ptr<AddKernel> NewAdd() {
   return std::make_unique<AddKernelImpl<T>>();
 }
-}  // namespace
-
 Ret<std::unique_ptr<AddKernel>> AddKernelFactory::create(DataType dtype) {
-  static const std::map<DataType, std::function<std::unique_ptr<AddKernel>()>> new_add_handle{
-
-#define MAKE_NEW_ADD_ENTRY(type_cpp, type_proto) {type_proto, NewAdd<type_cpp>},
-#define FOR_MAKE_NEW_ADD_ENTRY(i, data, elem) FF_PP_FORWARD(MAKE_NEW_ADD_ENTRY, BOOST_PP_TUPLE_ENUM(elem))
-      BOOST_PP_SEQ_FOR_EACH(FOR_MAKE_NEW_ADD_ENTRY, _, CPU_PRIMITIVE_NATIVE_TYPE_SEQ)
-#undef FOR_MAKE_NEW_ADD_ENTRY
-#undef MAKE_NEW_ADD_ENTRY
-
-  };
+  static const std::map<DataType, std::function<std::unique_ptr<AddKernel>()>> new_add_handle{MAKE_NEW_FACTORY(NewAdd)};
 
   auto kernel = NewKernalFromHandlers(new_add_handle, dtype);
-  CHECK_OR_RETURN(kernel) << "AddKernel for type: " << fmt::to_string(dtype) << " has not implemented.";
+  CHECK_OR_RETURN(kernel) << "AddKernel for type: " << std::to_string(dtype) << " has not implemented.";
   return kernel;
 };
+}  // namespace fineflow
+
+namespace fineflow {
+namespace {
+REGISTER_KERNEL_FACTORY(DeviceType::kCPU, AddKernelFactory);
+}  // namespace
+
 }  // namespace fineflow

@@ -25,9 +25,9 @@ def add_format_cc_argument(parser):
         "--regex-cc",
         dest="regex",
         action="store_const",
-        const=r".*\.((((c|C)(c|pp|xx|\+\+)?$)|((h|H)h?(pp|xx|\+\+)?$))|(ino|pde|proto|cu))$",
+        const=r".*\.((((c|C)(c|pp|xx|ppm|\+\+)?$)|((h|H)h?(pp|xx|\+\+)?$))|(ino|pde|proto|cu))$",
         help="Specify cc regex for filename: "
-        r".*\.((((c|C)(c|pp|xx|\+\+)?$)|((h|H)h?(pp|xx|\+\+)?$))|(ino|pde|proto|cu))$",
+        r".*\.((((c|C)(c|pp|xx|ppm|\+\+)?$)|((h|H)h?(pp|xx|\+\+)?$))|(ino|pde|proto|cu))$",
     )
     parser.add_argument(
         "--regex-cmake",

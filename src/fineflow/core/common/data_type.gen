@@ -1,0 +1,152 @@
+
+
+RegisterTrigger<decltype((DataType ::kBool)), decltype((sizeof(bool)))> t_40_0 =
+    Registry<decltype((DataType ::kBool)), decltype((sizeof(bool)))>((DataType ::kBool)).setValue((sizeof(bool)));
+template <>
+struct GetDataType<bool> : std ::integral_constant<DataType, DataType ::kBool> {
+  static constexpr size_t size = sizeof(bool);
+};
+template <>
+struct DataTypeToClass<DataType ::kBool> : type_identity<bool> {
+  static constexpr size_t size = sizeof(bool);
+};
+RegisterTrigger<decltype((DataType ::kChar)), decltype((sizeof(char)))> t_40_1 =
+    Registry<decltype((DataType ::kChar)), decltype((sizeof(char)))>((DataType ::kChar)).setValue((sizeof(char)));
+template <>
+struct GetDataType<char> : std ::integral_constant<DataType, DataType ::kChar> {
+  static constexpr size_t size = sizeof(char);
+};
+template <>
+struct DataTypeToClass<DataType ::kChar> : type_identity<char> {
+  static constexpr size_t size = sizeof(char);
+};
+RegisterTrigger<decltype((DataType ::kInt8)), decltype((sizeof(int8_t)))> t_40_2 =
+    Registry<decltype((DataType ::kInt8)), decltype((sizeof(int8_t)))>((DataType ::kInt8)).setValue((sizeof(int8_t)));
+template <>
+struct GetDataType<int8_t> : std ::integral_constant<DataType, DataType ::kInt8> {
+  static constexpr size_t size = sizeof(int8_t);
+};
+template <>
+struct DataTypeToClass<DataType ::kInt8> : type_identity<int8_t> {
+  static constexpr size_t size = sizeof(int8_t);
+};
+RegisterTrigger<decltype((DataType ::kUInt8)), decltype((sizeof(uint8_t)))> t_40_3 =
+    Registry<decltype((DataType ::kUInt8)), decltype((sizeof(uint8_t)))>((DataType ::kUInt8))
+        .setValue((sizeof(uint8_t)));
+template <>
+struct GetDataType<uint8_t> : std ::integral_constant<DataType, DataType ::kUInt8> {
+  static constexpr size_t size = sizeof(uint8_t);
+};
+template <>
+struct DataTypeToClass<DataType ::kUInt8> : type_identity<uint8_t> {
+  static constexpr size_t size = sizeof(uint8_t);
+};
+RegisterTrigger<decltype((DataType ::kInt16)), decltype((sizeof(int16_t)))> t_40_4 =
+    Registry<decltype((DataType ::kInt16)), decltype((sizeof(int16_t)))>((DataType ::kInt16))
+        .setValue((sizeof(int16_t)));
+template <>
+struct GetDataType<int16_t> : std ::integral_constant<DataType, DataType ::kInt16> {
+  static constexpr size_t size = sizeof(int16_t);
+};
+template <>
+struct DataTypeToClass<DataType ::kInt16> : type_identity<int16_t> {
+  static constexpr size_t size = sizeof(int16_t);
+};
+RegisterTrigger<decltype((DataType ::kUInt16)), decltype((sizeof(uint16_t)))> t_40_5 =
+    Registry<decltype((DataType ::kUInt16)), decltype((sizeof(uint16_t)))>((DataType ::kUInt16))
+        .setValue((sizeof(uint16_t)));
+template <>
+struct GetDataType<uint16_t> : std ::integral_constant<DataType, DataType ::kUInt16> {
+  static constexpr size_t size = sizeof(uint16_t);
+};
+template <>
+struct DataTypeToClass<DataType ::kUInt16> : type_identity<uint16_t> {
+  static constexpr size_t size = sizeof(uint16_t);
+};
+RegisterTrigger<decltype((DataType ::kInt32)), decltype((sizeof(int32_t)))> t_40_6 =
+    Registry<decltype((DataType ::kInt32)), decltype((sizeof(int32_t)))>((DataType ::kInt32))
+        .setValue((sizeof(int32_t)));
+template <>
+struct GetDataType<int32_t> : std ::integral_constant<DataType, DataType ::kInt32> {
+  static constexpr size_t size = sizeof(int32_t);
+};
+template <>
+struct DataTypeToClass<DataType ::kInt32> : type_identity<int32_t> {
+  static constexpr size_t size = sizeof(int32_t);
+};
+RegisterTrigger<decltype((DataType ::kUInt32)), decltype((sizeof(uint32_t)))> t_40_7 =
+    Registry<decltype((DataType ::kUInt32)), decltype((sizeof(uint32_t)))>((DataType ::kUInt32))
+        .setValue((sizeof(uint32_t)));
+template <>
+struct GetDataType<uint32_t> : std ::integral_constant<DataType, DataType ::kUInt32> {
+  static constexpr size_t size = sizeof(uint32_t);
+};
+template <>
+struct DataTypeToClass<DataType ::kUInt32> : type_identity<uint32_t> {
+  static constexpr size_t size = sizeof(uint32_t);
+};
+RegisterTrigger<decltype((DataType ::kInt64)), decltype((sizeof(int64_t)))> t_40_8 =
+    Registry<decltype((DataType ::kInt64)), decltype((sizeof(int64_t)))>((DataType ::kInt64))
+        .setValue((sizeof(int64_t)));
+template <>
+struct GetDataType<int64_t> : std ::integral_constant<DataType, DataType ::kInt64> {
+  static constexpr size_t size = sizeof(int64_t);
+};
+template <>
+struct DataTypeToClass<DataType ::kInt64> : type_identity<int64_t> {
+  static constexpr size_t size = sizeof(int64_t);
+};
+RegisterTrigger<decltype((DataType ::kUInt64)), decltype((sizeof(uint64_t)))> t_40_9 =
+    Registry<decltype((DataType ::kUInt64)), decltype((sizeof(uint64_t)))>((DataType ::kUInt64))
+        .setValue((sizeof(uint64_t)));
+template <>
+struct GetDataType<uint64_t> : std ::integral_constant<DataType, DataType ::kUInt64> {
+  static constexpr size_t size = sizeof(uint64_t);
+};
+template <>
+struct DataTypeToClass<DataType ::kUInt64> : type_identity<uint64_t> {
+  static constexpr size_t size = sizeof(uint64_t);
+};
+RegisterTrigger<decltype((DataType ::kFloat)), decltype((sizeof(float)))> t_40_10 =
+    Registry<decltype((DataType ::kFloat)), decltype((sizeof(float)))>((DataType ::kFloat)).setValue((sizeof(float)));
+template <>
+struct GetDataType<float> : std ::integral_constant<DataType, DataType ::kFloat> {
+  static constexpr size_t size = sizeof(float);
+};
+template <>
+struct DataTypeToClass<DataType ::kFloat> : type_identity<float> {
+  static constexpr size_t size = sizeof(float);
+};
+RegisterTrigger<decltype((DataType ::kDouble)), decltype((sizeof(double)))> t_40_11 =
+    Registry<decltype((DataType ::kDouble)), decltype((sizeof(double)))>((DataType ::kDouble))
+        .setValue((sizeof(double)));
+template <>
+struct GetDataType<double> : std ::integral_constant<DataType, DataType ::kDouble> {
+  static constexpr size_t size = sizeof(double);
+};
+template <>
+struct DataTypeToClass<DataType ::kDouble> : type_identity<double> {
+  static constexpr size_t size = sizeof(double);
+};
+RegisterTrigger<decltype((DataType ::kComplex64)), decltype((sizeof(std ::complex<float>)))> t_40_12 =
+    Registry<decltype((DataType ::kComplex64)), decltype((sizeof(std ::complex<float>)))>((DataType ::kComplex64))
+        .setValue((sizeof(std ::complex<float>)));
+template <>
+struct GetDataType<std ::complex<float> > : std ::integral_constant<DataType, DataType ::kComplex64> {
+  static constexpr size_t size = sizeof(std ::complex<float>);
+};
+template <>
+struct DataTypeToClass<DataType ::kComplex64> : type_identity<std ::complex<float> > {
+  static constexpr size_t size = sizeof(std ::complex<float>);
+};
+RegisterTrigger<decltype((DataType ::kComplex128)), decltype((sizeof(std ::complex<double>)))> t_40_13 =
+    Registry<decltype((DataType ::kComplex128)), decltype((sizeof(std ::complex<double>)))>((DataType ::kComplex128))
+        .setValue((sizeof(std ::complex<double>)));
+template <>
+struct GetDataType<std ::complex<double> > : std ::integral_constant<DataType, DataType ::kComplex128> {
+  static constexpr size_t size = sizeof(std ::complex<double>);
+};
+template <>
+struct DataTypeToClass<DataType ::kComplex128> : type_identity<std ::complex<double> > {
+  static constexpr size_t size = sizeof(std ::complex<double>);
+};

@@ -1,14 +1,32 @@
 module;
-#include "fineflow/core/op_kernel.h"
-#include "fineflow/core/op_kernel_factory.h"
-export module cpu_fill_kernel;
-export {
-#include "fineflow/core/kernels/fill_kernel.h"
-}
-namespace fineflow {
+#include "fineflow/core/common/result.h"
+#include "fineflow/core/common/util.h"
+#include "kernel_factor.h"
 
-namespace {
-REGISTER_KERNEL(DeviceType::kCPU, FillKernelFactory);
+export module fineflow.core.op_kernel.cpu.fill_kernel;
+import fineflow.core.op_kernel;
+import fineflow.core.op_kernel_factory;
+import fineflow.core.blob_tensor;
+import fineflow.core.common.error;
+import fineflow.core.common.data_type_proto;
+import fineflow.core.common.device_type_proto;
+import fineflow.core.common.fmt;
+import fineflow.core.common.registry_manager;
+import std;
+import std.compat;
+
+export namespace fineflow {
+
+class FillKernel : public OpKernel {
+public:
+  FF_DISALLOW_COPY_AND_MOVE(FillKernel);
+  FillKernel() = default;
+};
+
+class FillKernelFactory final : public OpKernelFactory<FillKernelFactory, FillKernel> {
+public:
+  static Ret<std::unique_ptr<FillKernel>> create(DataType dtype);
+};
 /**
  * @brief Fill buffer.
  *
@@ -39,21 +57,18 @@ template <typename T>
 std::unique_ptr<FillKernel> NewFill() {
   return std::make_unique<FillKernelImpl<T>>();
 }
-}  // namespace
 
 Ret<std::unique_ptr<FillKernel>> FillKernelFactory::create(DataType dtype) {
   static const std::map<DataType, std::function<std::unique_ptr<FillKernel>()>> new_add_handle{
-
-#define MAKE_NEW_COMPACT_ENTRY(type_cpp, type_proto) {type_proto, NewFill<type_cpp>},
-#define FOR_MAKE_NEW_COMPACT_ENTRY(i, data, elem) FF_PP_FORWARD(MAKE_NEW_COMPACT_ENTRY, BOOST_PP_TUPLE_ENUM(elem))
-      BOOST_PP_SEQ_FOR_EACH(FOR_MAKE_NEW_COMPACT_ENTRY, _, CPU_PRIMITIVE_NATIVE_TYPE_SEQ)
-#undef FOR_MAKE_NEW_COMPACT_ENTRY
-#undef MAKE_NEW_COMPACT_ENTRY
-
-  };
+      MAKE_NEW_FACTORY(NewFill)};
 
   auto kernel = NewKernalFromHandlers(new_add_handle, dtype);
-  CHECK_OR_RETURN(kernel) << "FillKernel for type: " << fmt::to_string(dtype) << " has not implemented.";
+  CHECK_OR_RETURN(kernel) << "FillKernel for type: " << std::to_string(dtype) << " has not implemented.";
   return kernel;
 };
+}  // namespace fineflow
+namespace fineflow {
+namespace {
+REGISTER_KERNEL_FACTORY(DeviceType::kCPU, FillKernelFactory);
+}  // namespace
 }  // namespace fineflow

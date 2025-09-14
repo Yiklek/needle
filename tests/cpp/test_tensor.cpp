@@ -1,6 +1,7 @@
 #include "catch2/catch_test_macros.hpp"
-#include "fineflow/core/cpu/cpu_tensor.h"
-#include "fineflow/core/tensor_util.h"
+
+import fineflow.core.blob_tensor;
+import fineflow.core.common.data_type_proto;
 
 using namespace fineflow;
 BlobTensorView getView() {

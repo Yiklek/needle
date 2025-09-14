@@ -4,8 +4,6 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(CppModules)
 include(CppModulesClang)
 
-# set(CMAKE_CXX_STANDARD 17)
-# set(CMAKE_CXX_STANDARD 23)
 project(needle C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -29,7 +27,7 @@ execute_process(
 message(STATUS ${__pybind_path})
 find_package(pybind11 PATHS ${__pybind_path})
 include(Pybind11)
-# set(CMAKE_CXX_VISIBILITY_PRESET "hidden")
+set(CMAKE_CXX_VISIBILITY_PRESET "hidden")
 
 
 set(CXX_STANDARD_NAME "c++${CMAKE_CXX_STANDARD}")
@@ -64,20 +62,20 @@ include(FetchExpected)
 include(FetchSpdlog)
 include(FetchBoostPreprocessor)
 
-fetch_fmt()
+if (CMAKE_CXX_STANDARD LESS 23)
+  fetch_fmt()
+  fetch_expected()
+endif()
 fetch_protobuf()
-fetch_expected()
 fetch_spdlog()
-fetch_boost_preprocessor()
 
-# include(CppModules)
 
 set(NEEDLE_THIRD_COMMON_LIBS "")
-list(APPEND NEEDLE_THIRD_COMMON_LIBS tl::expected)
-list(APPEND NEEDLE_THIRD_COMMON_LIBS fmt::fmt)
-# list(APPEND NEEDLE_THIRD_COMMON_LIBS range-v3)
+if (CMAKE_CXX_STANDARD LESS 23)
+  list(APPEND NEEDLE_THIRD_COMMON_LIBS tl::expected)
+  list(APPEND NEEDLE_THIRD_COMMON_LIBS fmt::fmt)
+endif()
 list(APPEND NEEDLE_THIRD_COMMON_LIBS spdlog::spdlog_header_only)
-list(APPEND NEEDLE_THIRD_COMMON_LIBS Boost::preprocessor)
 
 add_library(ThirdCommon INTERFACE)
 target_link_libraries(ThirdCommon INTERFACE ${NEEDLE_THIRD_COMMON_LIBS})
@@ -99,39 +97,38 @@ protobuf_generate(
     IMPORT_DIRS "src"
     PROTOC_OUT_DIR "${PROTO_BINARY_DIR}"
 )
-file(GLOB FINEFLOW_CORE_COMMON_SRCS  src/fineflow/core/common/*.cpp)
-add_library(FineflowCommon ${FINEFLOW_CORE_COMMON_SRCS})
+
+file(GLOB FINEFLOW_COMMON_MODULE_SRCS  src/fineflow/core/common/*.cppm)
+add_cpp_module_library(FineflowCommon STATIC
+  MODULE_SRCS ${FINEFLOW_COMMON_MODULE_SRCS}
+)
+
 target_link_libraries(FineflowCommon PUBLIC proto-objects ThirdCommon)
 
+file(GLOB FINEFLOW_CORE_MODULE_SRCS  src/fineflow/core/*.cppm)
+file(GLOB FINEFLOW_CORE_FUNCTOR_MODULE_SRCS  src/fineflow/core/functional/*_functor.cppm)
 file(GLOB FINEFLOW_CORE_CPU_KERNEL_MODULE_SRCS  src/fineflow/core/kernels/cpu/*_kernel.cppm)
-add_cpp_module_library(FineflowCoreKernelObj OBJECT
-  SRCS ${FINEFLOW_CORE_CPU_KERNEL_MODULE_SRCS}
+add_cpp_module_library(FineflowCore STATIC
+  MODULE_SRCS
+  ${FINEFLOW_CORE_MODULE_SRCS}
+  ${FINEFLOW_CORE_FUNCTOR_MODULE_SRCS}
+  ${FINEFLOW_CORE_CPU_KERNEL_MODULE_SRCS}
 )
-target_link_libraries(FineflowCoreKernelObj PUBLIC FineflowCommon)
+target_link_libraries(FineflowCore PUBLIC FineflowCommon)
 
-add_library(FineflowCoreKernel STATIC)
-target_link_libraries(FineflowCoreKernel PUBLIC FineflowCoreKernelObj FineflowCommon)
+
+file(GLOB FINEFLOW_API_PYTHON_MODULE_SRCS  src/fineflow/api/python/*.cppm)
+add_cpp_module_library(FineflowPyApiObj OBJECT
+  MODULE_SRCS ${FINEFLOW_API_PYTHON_MODULE_SRCS}
+)
+target_link_libraries(FineflowPyApiObj PUBLIC
+    $<LINK_LIBRARY:WHOLE_ARCHIVE,FineflowCore>
+)
 
 add_pybind11_module(FineflowPyApi
     SRCS src/fineflow/api/python/fineflow.cpp
-    DEPENDS $<LINK_LIBRARY:WHOLE_ARCHIVE,FineflowCore>
-)
-
-
-file(GLOB FINEFLOW_CORE_FUNCTOR_MODULE_SRCS  src/fineflow/core/functional/impl/*_functor.cppm)
-add_cpp_module_library(FineflowCoreFunctionalObj OBJECT
-  SRCS ${FINEFLOW_CORE_FUNCTOR_MODULE_SRCS}
-)
-target_link_libraries(FineflowCoreFunctionalObj PUBLIC FineflowCommon FineflowCoreKernel)
-
-add_library(FineflowCoreFunctional STATIC)
-target_link_libraries(FineflowCoreFunctional PUBLIC FineflowCoreFunctionalObj FineflowCommon)
-
-file(GLOB FINEFLOW_CORE_SRCS  src/fineflow/core/*.cpp)
-add_library(FineflowCore ${FINEFLOW_CORE_SRCS})
-target_link_libraries(FineflowCore PUBLIC
-  $<LINK_LIBRARY:WHOLE_ARCHIVE,FineflowCoreFunctional>
-  $<LINK_LIBRARY:WHOLE_ARCHIVE,FineflowCoreKernel>
+    DEPENDS
+    FineflowPyApiObj
 )
 
 
@@ -139,18 +136,6 @@ add_compile_definitions(FINEFLOW_SOURCE_DIR=${PROJECT_SOURCE_DIR} FINEFLOW_BINAR
 if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
   add_compile_definitions(DEBUG)
 endif()
-
-# add_executable(run run.cpp)
-# target_link_libraries(run PUBLIC FineflowCore)
-
-# add_library(foo)
-# target_sources(
-#     foo
-#     PRIVATE
-#     FILE_SET cxx_modules TYPE CXX_MODULES
-#     FILES foo.cpp
-# )
-# target_compile_features(foo PUBLIC cxx_std_20)
 
 # ##############################################################################
 # CUDA BACKEND ###
