@@ -1,8 +1,5 @@
 module;
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
-#include <sstream>
-#include <utility>
-
 #include "spdlog/cfg/env.h"  // support for loading levels from the environment variable
 #include "spdlog/spdlog.h"
 export module fineflow.core.common.log;
@@ -43,11 +40,7 @@ public:
 // #define CRITICAL spdlog::level::CRITICAL
 // #define ERROR spdlog::level::err
 // #define OFF spdlog::level::off
-using namespace spdlog::level;
-
-#define SPDLOG_LOGGER_STREAM(log, lvl) \
-  log && log->should_log(lvl) &&       \
-      fineflow::LogStream(log, lvl, spdlog::source_loc{__FILE__, __LINE__, SPDLOG_FUNCTION}) <= std::ostringstream()
-
-#define LOG(x) SPDLOG_LOGGER_STREAM(spdlog::default_logger(), x)
+namespace log {
+using level = spdlog::level::level_enum;
+}
 }  // namespace fineflow

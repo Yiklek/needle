@@ -7,6 +7,7 @@ import fineflow.core.op_kernel.cpu.assign_kernel;
 import fineflow.core.op_kernel.cpu.compact_kernel;
 import fineflow.core.op_kernel.cpu.fill_kernel;
 import fineflow.core.op_kernel;
+import fineflow.core.op_kernel_factory;
 import fineflow.core.blob_tensor;
 import fineflow.core.common.registry_manager;
 import fineflow.core.common.function_traits;
@@ -49,9 +50,9 @@ public:
 
 template <class T>
 inline Ret<void> Call(KernelComputeContext& ctx) {
-  TRY_ASSIGN(auto f, KernelRegistryMgr<T>::Get().GetValue(ctx.device()));
+  TRY_ASSIGN(auto f, KernelFactoryRegistryMgr<T>::Get().GetValue(ctx.device()));
   TRY_ASSIGN(auto kernel, (*f)->create(ctx.dtype()));
-  kernel->compute(&ctx);
+  kernel->compute(ctx);
   return {};
 }
 
@@ -64,7 +65,7 @@ Ret<BlobTensorView> AddFunctor::operator()(const BlobTensorView& a, const BlobTe
   ctx.insertTensor("in", 0, a);
   ctx.insertTensor("in", 1, b);
   ctx.insertTensor("out", 0, tc->view());
-  TRY(Call<AddKernelFactory>(ctx));
+  TRY(Call<AddKernel>(ctx));
   return tc->view();
 }
 
@@ -74,7 +75,7 @@ Ret<BlobTensorView> CompactFunctor::operator()(const BlobTensorView& a) {
   KernelComputeContext ctx(a.device(), a.dtype());
   ctx.insertTensor("in", 0, a);
   ctx.insertTensor("out", 0, r->view());
-  TRY(Call<CompactKernelFactory>(ctx));
+  TRY(Call<CompactKernel>(ctx));
   return r->view();
 }
 
@@ -86,7 +87,7 @@ Ret<void> FillFunctor<const BlobTensorView&>::operator()(BlobTensorView& dst, co
   KernelComputeContext ctx(dst.device(), dst.dtype());
   ctx.insertTensor("dst", 0, dst);
   ctx.insertTensor("scalar", 0, scalar);
-  TRY(Call<FillKernelFactory>(ctx));
+  TRY(Call<FillKernel>(ctx));
   return {};
 }
 
@@ -105,7 +106,7 @@ Ret<void> AssignFunctor<const BlobTensorView&>::operator()(BlobTensorView& dst, 
   KernelComputeContext ctx(dst.device(), dst.dtype());
   ctx.insertTensor("dst", 0, dst);
   ctx.insertTensor("src", 0, src);
-  TRY(Call<AssignKernelFactory>(ctx));
+  TRY(Call<AssignKernel>(ctx));
   return {};
 }
 

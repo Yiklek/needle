@@ -23,9 +23,9 @@ public:
   AssignKernel() = default;
 };
 
-class AssignKernelFactory final : public OpKernelFactory<AssignKernelFactory, AssignKernel> {
+class AssignKernelFactory final : public OpKernelFactory {
 public:
-  static Ret<std::unique_ptr<AssignKernel>> create(DataType dtype);
+  Ret<std::unique_ptr<OpKernel>> create(DataType dtype);
 };
 /**
  * @brief Assign buffer.
@@ -35,12 +35,12 @@ public:
  * @param dst Dest to assign.
  */
 template <class T>
-void Assign(const BlobTensorView& src, BlobTensorView* dst) {
-  auto shape = dst->shape();
-  auto strides = dst->stride();
+void Assign(const BlobTensorView& src, BlobTensorView& dst) {
+  auto shape = dst.shape();
+  auto strides = dst.stride();
   int32_t dim = shape.size();
   auto* src_ptr = src.castPtr<T>() + src.offset();
-  auto* dst_ptr = dst->castPtrMut<T>() + dst->offset();
+  auto* dst_ptr = dst.castPtrMut<T>() + dst.offset();
   auto scalar = src.isScalar();
   auto get_elem = std::function([&](size_t idx) { return src_ptr[idx]; });
   if (scalar) {
@@ -49,7 +49,7 @@ void Assign(const BlobTensorView& src, BlobTensorView* dst) {
   // NOTE uint32_t has changed to int32_t
   std::vector<int32_t> pos(dim, 0);
   // NOTE careful with the iteration times, not `out-size`!
-  for (size_t i = 0; i < dst->elementCount(); i++) {
+  for (size_t i = 0; i < dst.elementCount(); i++) {
     int32_t idx = 0;
     for (int j = 0; j < dim; j++) idx += strides[dim - 1 - j] * pos[j];
     dst_ptr[idx] = get_elem(idx);
@@ -66,10 +66,10 @@ void Assign(const BlobTensorView& src, BlobTensorView* dst) {
 
 template <class T>
 class AssignKernelImpl final : public AssignKernel {
-  void compute(KernelComputeContext* ctx) const override {
-    auto src = *ctx->fetchTensor("src", 0);
-    auto dst = *ctx->fetchTensor("dst", 0);
-    Assign<T>(src, &dst);
+  void compute(KernelComputeContext& ctx) const override {
+    auto src = *ctx.fetchTensor("src", 0);
+    auto dst = *ctx.fetchTensor("dst", 0);
+    Assign<T>(src, dst);
   }
 };
 
@@ -78,7 +78,7 @@ std::unique_ptr<AssignKernel> NewAssign() {
   return std::make_unique<AssignKernelImpl<T>>();
 }
 
-Ret<std::unique_ptr<AssignKernel>> AssignKernelFactory::create(DataType dtype) {
+Ret<std::unique_ptr<OpKernel>> AssignKernelFactory::create(DataType dtype) {
   static const std::map<DataType, std::function<std::unique_ptr<AssignKernel>()>> new_add_handle{
       MAKE_NEW_FACTORY(NewAssign)};
 
@@ -89,6 +89,6 @@ Ret<std::unique_ptr<AssignKernel>> AssignKernelFactory::create(DataType dtype) {
 }  // namespace fineflow
 namespace fineflow {
 namespace {
-REGISTER_KERNEL_FACTORY(DeviceType::kCPU, AssignKernelFactory);
+REGISTER_KERNEL_FACTORY(AssignKernel, DeviceType::kCPU, AssignKernelFactory);
 }
 }  // namespace fineflow

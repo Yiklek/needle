@@ -23,9 +23,9 @@ public:
   FillKernel() = default;
 };
 
-class FillKernelFactory final : public OpKernelFactory<FillKernelFactory, FillKernel> {
+class FillKernelFactory final : public OpKernelFactory {
 public:
-  static Ret<std::unique_ptr<FillKernel>> create(DataType dtype);
+  Ret<std::unique_ptr<OpKernel>> create(DataType dtype);
 };
 /**
  * @brief Fill buffer.
@@ -35,9 +35,9 @@ public:
  * @param dst dst
  */
 template <class T>
-void Fill(const BlobTensorView& scalar, BlobTensorView* dst) {
-  auto size = dst->bufferSize() / sizeof(T);
-  T* out_ptr = dst->castPtrMut<T>();
+void Fill(const BlobTensorView& scalar, BlobTensorView& dst) {
+  auto size = dst.bufferSize() / sizeof(T);
+  T* out_ptr = dst.castPtrMut<T>();
   const T s = *scalar.castPtr<T>();
   for (size_t i = 0; i < size; i++) {
     out_ptr[i] = s;
@@ -46,10 +46,10 @@ void Fill(const BlobTensorView& scalar, BlobTensorView* dst) {
 
 template <class T>
 class FillKernelImpl final : public FillKernel {
-  void compute(KernelComputeContext* ctx) const override {
-    auto scalar = *ctx->fetchTensor("scalar", 0);
-    auto dst = *ctx->fetchTensor("dst", 0);
-    Fill<T>(scalar, &dst);
+  void compute(KernelComputeContext& ctx) const override {
+    auto scalar = *ctx.fetchTensor("scalar", 0);
+    auto dst = *ctx.fetchTensor("dst", 0);
+    Fill<T>(scalar, dst);
   }
 };
 
@@ -58,7 +58,7 @@ std::unique_ptr<FillKernel> NewFill() {
   return std::make_unique<FillKernelImpl<T>>();
 }
 
-Ret<std::unique_ptr<FillKernel>> FillKernelFactory::create(DataType dtype) {
+Ret<std::unique_ptr<OpKernel>> FillKernelFactory::create(DataType dtype) {
   static const std::map<DataType, std::function<std::unique_ptr<FillKernel>()>> new_add_handle{
       MAKE_NEW_FACTORY(NewFill)};
 
@@ -69,6 +69,6 @@ Ret<std::unique_ptr<FillKernel>> FillKernelFactory::create(DataType dtype) {
 }  // namespace fineflow
 namespace fineflow {
 namespace {
-REGISTER_KERNEL_FACTORY(DeviceType::kCPU, FillKernelFactory);
+REGISTER_KERNEL_FACTORY(FillKernel, DeviceType::kCPU, FillKernelFactory);
 }  // namespace
 }  // namespace fineflow

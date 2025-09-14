@@ -13,7 +13,7 @@
 #define MAP_REGISTER_NUMPY_FORMAT(tuple) REGISTER_NUMPY_FORMAT FF_PP_FORWARD(TYPE_NUMPY_TUPLE, FF_TUPLE_TO_ENUM(tuple))
 
 #define REGISTER_FILL_PYFUNCTOR(type_cpp, type_proto) \
-  m.def(func_name, std::function(PyFunctor<Tensor, Tensor&, type_cpp>(func_name)));
+  m.def(func_name, std::function(PyFunctor<void, Tensor&, type_cpp>(func_name)));
 #define MAP_REGISTER_FILL_PYFUNCTOR(tuple) REGISTER_FILL_PYFUNCTOR tuple
 
 #define REGISTER_ASSIGN_PYFUNCTOR(type_cpp, type_proto) \

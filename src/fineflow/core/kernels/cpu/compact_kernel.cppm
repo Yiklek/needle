@@ -22,17 +22,17 @@ public:
   CompactKernel() = default;
 };
 
-class CompactKernelFactory final : public OpKernelFactory<CompactKernelFactory, CompactKernel> {
+class CompactKernelFactory final : public OpKernelFactory {
 public:
-  static Ret<std::unique_ptr<CompactKernel>> create(DataType dtype);
+  Ret<std::unique_ptr<OpKernel>> create(DataType dtype);
 };
 template <class T>
-void Compact(const BlobTensorView& a, BlobTensorView* out) {
+void Compact(const BlobTensorView& a, BlobTensorView& out) {
   /**
    * Set entries in out to be the sum of correspondings entires in a and b.
    */
-  auto size = out->elementCount();
-  T* out_ptr = out->castPtrMut<T>();
+  auto size = out.elementCount();
+  T* out_ptr = out.castPtrMut<T>();
   const T* a_ptr = a.castPtr<T>();
   // for (size_t i = 0; i < size; i++) {
   //   out_ptr[i] = a_ptr[i] + ;
@@ -60,10 +60,10 @@ void Compact(const BlobTensorView& a, BlobTensorView* out) {
 
 template <class T>
 class CompactKernelImpl final : public CompactKernel {
-  void compute(KernelComputeContext* ctx) const override {
-    auto in0 = ctx->fetchTensor("in", 0).value();
-    auto out = ctx->fetchTensor("out", 0).value();
-    Compact<T>(in0, &out);
+  void compute(KernelComputeContext& ctx) const override {
+    auto in0 = *ctx.fetchTensor("in", 0);
+    auto out = *ctx.fetchTensor("out", 0);
+    Compact<T>(in0, out);
   }
 };
 
@@ -72,7 +72,7 @@ std::unique_ptr<CompactKernel> NewCompact() {
   return std::make_unique<CompactKernelImpl<T>>();
 }
 
-Ret<std::unique_ptr<CompactKernel>> CompactKernelFactory::create(DataType dtype) {
+Ret<std::unique_ptr<OpKernel>> CompactKernelFactory::create(DataType dtype) {
   static const std::map<DataType, std::function<std::unique_ptr<CompactKernel>()>> new_add_handle{
       MAKE_NEW_FACTORY(NewCompact)};
 
@@ -83,7 +83,7 @@ Ret<std::unique_ptr<CompactKernel>> CompactKernelFactory::create(DataType dtype)
 }  // namespace fineflow
 namespace fineflow {
 namespace {
-REGISTER_KERNEL_FACTORY(DeviceType::kCPU, CompactKernelFactory);
+REGISTER_KERNEL_FACTORY(CompactKernel, DeviceType::kCPU, CompactKernelFactory);
 }  // namespace
 
 }  // namespace fineflow

@@ -54,7 +54,7 @@ protected:
 public:
   explicit Registry(const Key& key) : key_(key) {}
   Key& key() { return key_; }
-  Value& finish() { return value_; }
+  Value& value() { return value_; }
 
   Registry<Key, Value>&& setValue(Value&& value) && {
     value_ = std::forward<Value>(value);
@@ -66,10 +66,10 @@ template <class Key, class Value, class Type = void>
 struct RegisterTrigger final {
   RegisterTrigger(const Registry<Key, Value>& registry) {  // NOLINT
     std::cout << "RegisterTrigger: " << registry.key() << std::endl;
-    (void)RegistryMgr<Key, Value, Type>::Get().Register(registry.key(), registry.finish());
+    (void)RegistryMgr<Key, Value, Type>::Get().Register(registry.key(), registry.value());
   }
   RegisterTrigger(Registry<Key, Value>&& registry) {  // NOLINT
-    (void)RegistryMgr<Key, Value, Type>::Get().Register(std::move(registry.key()), std::move(registry.finish()));
+    (void)RegistryMgr<Key, Value, Type>::Get().Register(std::move(registry.key()), std::move(registry.value()));
   }
 };
 
@@ -114,20 +114,5 @@ struct Register {
 };
 
 using RegisterVoid = Register<>;
-
-#define REGISTER_VAR_NAME FF_PP_JOIN_U(t, __LINE__, __COUNTER__)
-
-#define REGISTER_KEY_WITH_CLASS(class_key, class_value, key) \
-  static RegisterTrigger<class_key, class_value> REGISTER_VAR_NAME = Registry<class_key, class_value>((key))
-
-#define REGISTER_KEY_WITH_CLASS_T(class_key, class_value, class_type, key) \
-  static RegisterTrigger<class_key, class_value, class_type> REGISTER_VAR_NAME = Registry<class_key, class_value>((key))
-
-#define REGISTER_KEY(class_value, key) REGISTER_KEY_WITH_CLASS(decltype((key)), class_value, key)
-#define REGISTER_KEY_VALUE(key, value) \
-  REGISTER_KEY_WITH_CLASS(decltype((key)), decltype((value)), key).setValue((value))
-
-#define REGISTER_KEY_VALUE_T(class_type, key, value) \
-  REGISTER_KEY_WITH_CLASS_T(decltype((key)), decltype((value)), class_type, key).setValue((value))
 
 }  // namespace fineflow

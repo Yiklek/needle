@@ -13,9 +13,9 @@ export namespace fineflow {
 template <class R, class... Args>
 struct Functor {
   // functor on construct
-  explicit Functor(const std::string &name)
+  explicit Functor(const std::string& name)
       : name_(name), f_(RegistryFuncMgr::Get().GetValue(name_).value_or(nullptr)) {}
-  explicit Functor(std::string &&name)
+  explicit Functor(std::string&& name)
       : name_(std::move(name)), f_(RegistryFuncMgr::Get().GetValue(name_).value_or(nullptr)) {}
   using ReturnType = Ret<R>;
 
@@ -29,7 +29,7 @@ struct Functor {
 
 protected:
   std::string name_;
-  const FuncType *f_;
+  const FuncType* f_;
 };
 
 }  // namespace fineflow

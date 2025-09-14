@@ -13,6 +13,9 @@ BlobTensorView getView() {
 TEST_CASE("tensor") {
   auto v = getView();
   REQUIRE(1 == v.ptr().use_count());
+  auto v2 = v;
+  REQUIRE(2 == v.ptr().use_count());
+  REQUIRE(2 == v2.ptr().use_count());
 }
 
 TEST_CASE("tensor clone") {

@@ -12,7 +12,7 @@ inline auto DataTypeName(T value) {
 }  // namespace fineflow
 export namespace std {
 template <>
-struct std::formatter<fineflow::DataType> : std::formatter<std::string> {
+struct formatter<fineflow::DataType> : formatter<string> {
   template <typename FormatContext>
   auto format(const fineflow::DataType dtype, FormatContext& ctx) const {
     return std::format_to(ctx.out(), "{}", fineflow::DataTypeName(dtype).substr(1));

@@ -12,7 +12,7 @@ inline auto DeviceTypeName(T value) {
 }  // namespace fineflow
 export namespace std {
 template <>
-struct std::formatter<fineflow::DeviceType> : std::formatter<std::string> {
+struct formatter<fineflow::DeviceType> : formatter<string> {
   template <typename FormatContext>
   auto format(const fineflow::DeviceType type, FormatContext& ctx) const {
     return std::format_to(ctx.out(), "{}", fineflow::DeviceTypeName(type).substr(1));

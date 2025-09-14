@@ -14,6 +14,8 @@
     return frame;                                                                                          \
   }(FF_PP_STACK_FUNC))
 
+#define UNIMPLEMENTED_ERROR FF_ERROR_ADD_STACKFRAME(Error::UnimplementedError(), "UNIMPLEMENTED")
+
 #define CHECK_OR_RETURN_INTERNAL(expr, error_msg) \
   if (!(expr)) return FF_ERROR_ADD_STACKFRAME(Error::CheckFailedError(), error_msg)
 
@@ -61,8 +63,7 @@
 #define RET_NAME RET_NAME_IMPL(__COUNTER__, __LINE__)
 
 #define TRY_ASSIGN(lhs, rexpr) \
-  TRY_ASSIGN_CATCH_IMPL(       \
-      RET_NAME, lhs, rexpr, { return e; }, FF_PP_STRINGIZE(TRY_ASSIGN(lhs, rexpr)))
+  TRY_ASSIGN_CATCH_IMPL(RET_NAME, lhs, rexpr, { return e; }, FF_PP_STRINGIZE(TRY_ASSIGN(lhs, rexpr)))
 
 #define TRY_ASSIGN_CATCH(lhs, rexpr, catch_exprs)                                \
   TRY_ASSIGN_CATCH_IMPL(RET_NAME, lhs, FF_PP_ALL(rexpr), FF_PP_ALL(catch_exprs), \
@@ -71,8 +72,6 @@
 #define TRY_CATCH(rexpr, catch_exprs) \
   TRY_CATCH_IMPL(RET_NAME, FF_PP_ALL(rexpr), FF_PP_ALL(catch_exprs), FF_PP_STRINGIZE(TRY_CATCH(FF_PP_ALL(rexpr), ...)))
 
-#define TRY(rexpr) \
-  TRY_CATCH_IMPL(  \
-      RET_NAME, rexpr, { return e; }, FF_PP_STRINGIZE(TRY(rexpr)))
+#define TRY(rexpr) TRY_CATCH_IMPL(RET_NAME, rexpr, { return e; }, FF_PP_STRINGIZE(TRY(rexpr)))
 
 #endif

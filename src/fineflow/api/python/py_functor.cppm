@@ -28,13 +28,13 @@ template <class T>
 struct MapArgType : public type_identity<T> {};
 
 template <>
-struct MapArgType<const Tensor &> {
-  using type = const BlobTensorView &;
+struct MapArgType<const Tensor&> {
+  using type = const BlobTensorView&;
 };
 
 template <>
-struct MapArgType<Tensor &> {
-  using type = BlobTensorView &;
+struct MapArgType<Tensor&> {
+  using type = BlobTensorView&;
 };
 
 template <class T>

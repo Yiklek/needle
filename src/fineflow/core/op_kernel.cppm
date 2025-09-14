@@ -46,7 +46,7 @@ public:
   FF_DISALLOW_COPY_AND_MOVE(OpKernel);
   virtual ~OpKernel() = default;
 
-  virtual void compute(KernelComputeContext* ctx) const { LOG(err) << ctx->opName() << " :UNIMPLEMENTED"; }
+  virtual void compute(KernelComputeContext& ctx) const { LOG(err) << ctx.opName() << " :UNIMPLEMENTED"; }
 
 protected:
   OpKernel() = default;
@@ -60,11 +60,4 @@ OpKernel* NewOpKernel(Args&&... args) {
   OpKernel* ptr = new T(std::forward<Args>(args)...);
   return ptr;
 }
-template <class T>
-using KernelRegistryMgr = RegistryMgr<DeviceType, std::unique_ptr<T>>;
-
-// REGISTER_KEY_WITH_CLASS(DeviceType, std::unique_ptr<OpKernel>, device) \
-//     .setValue(std::make_unique<kernel_factory_type>())
-#define REGISTER_KERNEL(device, kernel_factory_type) \
-  REGISTER_KEY_VALUE(device, std::make_unique<kernel_factory_type>());
 }  // namespace fineflow

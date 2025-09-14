@@ -48,3 +48,26 @@ def test_op(fn, shape):
     t1 = lib.from_numpy(a1)
     r = fn(t0, t1)
     np.testing.assert_allclose(lib.to_numpy(r), a0 + a1, atol=1e-5, rtol=1e-5)
+
+
+@pytest.mark.parametrize("fn", [lib.fill])
+@pytest.mark.parametrize("shape", SHAPES)
+def test_fill(fn, shape):
+    np.random.seed(0)
+    a0 = np.random.randn(*shape).astype("float32")
+    t0 = lib.from_numpy(a0)
+    fn(t0, 1.0)
+    np.testing.assert_allclose(lib.to_numpy(t0), np.ones(shape).astype("float32"), atol=1e-5, rtol=1e-5)
+
+
+@pytest.mark.parametrize("fn", [lib.assign])
+@pytest.mark.parametrize("shape", SHAPES)
+def test_op(fn, shape):
+    np.random.seed(0)
+    a0 = np.random.randn(*shape).astype("float32")
+    a1 = np.random.randn(*shape).astype("float32")
+    t0 = lib.from_numpy(a0)
+    t1 = lib.from_numpy(a1)
+    fn(t0, t1)
+    ar = lib.to_numpy(t0)
+    np.testing.assert_allclose(ar, a1, atol=1e-5, rtol=1e-5)
