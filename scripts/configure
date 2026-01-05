@@ -37,7 +37,7 @@ while true; do
         _CPM_CACHE_PATH="$1"
     elif [[ "$1" == "--" ]]; then
         shift
-        _CMAKE_FLAGS="$*"
+        _CMAKE_FLAGS="$_CMAKE_FLAGS $*"
         break
     elif [[ -z "$1" ]]; then
         break

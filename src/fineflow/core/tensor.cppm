@@ -3,9 +3,9 @@ import std;
 import std.compat;
 import fineflow.core.common.data_type_proto;
 export namespace fineflow {
-using ShapeDataType = int64_t;
+using ShapeDataType = long;
 using Shape = std::vector<ShapeDataType>;
-using StrideDataType = int64_t;
+using StrideDataType = long;
 using Stride = std::vector<StrideDataType>;
 inline int64_t GetElementCount(const Shape& shape) {
   return std::accumulate(shape.begin(), shape.end(), 1L, std::multiplies<>());

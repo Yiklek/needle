@@ -9,8 +9,14 @@ function(fetch_protobuf)
     CPMAddPackage(
       NAME protobuf
       GITHUB_REPOSITORY protocolbuffers/protobuf
-      GIT_TAG v32.0 
-      OPTIONS "protobuf_BUILD_TESTS OFF"
+      GIT_TAG v33.2
+      OPTIONS
+        "protobuf_BUILD_TESTS OFF"
+        "protobuf_BUILD_SHARED_LIBS OFF"
+        # "protobuf_ABSL_PROVIDER module"  # 使用 protobuf 内置的 absl
+        # "absl_ENABLE_INSTALL OFF"
+        # 禁用可能需要 atomic 的 absl 组件
+        # "absl_FIND_CMAKE_PACKAGE OFF"
       GIT_SHALLOW ON
       EXCLUDE_FROM_ALL ON)
     include(${protobuf_SOURCE_DIR}/cmake/protobuf-generate.cmake)
