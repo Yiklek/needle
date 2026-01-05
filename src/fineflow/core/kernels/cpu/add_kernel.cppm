@@ -16,17 +16,8 @@ import std;
 import std.compat;
 
 export namespace fineflow {
-class AddKernelFactory;
-class AddKernel : public OpKernel {
-public:
-  FF_DISALLOW_COPY_AND_MOVE(AddKernel);
-  AddKernel() = default;
-};
+DECL_KERNEL(Add);
 
-class AddKernelFactory final : public OpKernelFactory {
-public:
-  Ret<std::unique_ptr<OpKernel>> create(DataType dtype);
-};
 template <class T>
 void EwiseAdd(const BlobTensorView& a, const BlobTensorView& b, BlobTensorView& out) {
   /**
@@ -51,23 +42,13 @@ class AddKernelImpl final : public AddKernel {
     EwiseAdd<T>(in0, in1, out);
   }
 };
-template <typename T>
-std::unique_ptr<AddKernel> NewAdd() {
-  return std::make_unique<AddKernelImpl<T>>();
-}
-Ret<std::unique_ptr<OpKernel>> AddKernelFactory::create(DataType dtype) {
-  static const std::map<DataType, std::function<std::unique_ptr<AddKernel>()>> new_add_handle{MAKE_NEW_FACTORY(NewAdd)};
 
-  auto kernel = NewKernalFromHandlers(new_add_handle, dtype);
-  CHECK_OR_RETURN(kernel) << "AddKernel for type: " << std::to_string(dtype) << " has not implemented.";
-  return kernel;
-};
+IMPL_KERNEL_FACTORY(Add)
 }  // namespace fineflow
 
 namespace fineflow {
 namespace {
-// REGISTER_KERNEL_FACTORY(DeviceType::kCPU, AddKernelFactory);
-REGISTER_KERNEL_FACTORY(AddKernel, DeviceType::kCPU, AddKernelFactory);
+REGISTER_KERNEL_FACTORY(Add, DeviceType::kCPU);
 }  // namespace
 
 }  // namespace fineflow

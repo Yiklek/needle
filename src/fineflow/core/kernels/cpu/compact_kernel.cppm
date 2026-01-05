@@ -15,17 +15,8 @@ import fineflow.core.common.registry_manager;
 import std;
 import std.compat;
 export namespace fineflow {
+DECL_KERNEL(Compact);
 
-class CompactKernel : public OpKernel {
-public:
-  FF_DISALLOW_COPY_AND_MOVE(CompactKernel);
-  CompactKernel() = default;
-};
-
-class CompactKernelFactory final : public OpKernelFactory {
-public:
-  Ret<std::unique_ptr<OpKernel>> create(DataType dtype);
-};
 template <class T>
 void Compact(const BlobTensorView& a, BlobTensorView& out) {
   /**
@@ -67,23 +58,11 @@ class CompactKernelImpl final : public CompactKernel {
   }
 };
 
-template <typename T>
-std::unique_ptr<CompactKernel> NewCompact() {
-  return std::make_unique<CompactKernelImpl<T>>();
-}
-
-Ret<std::unique_ptr<OpKernel>> CompactKernelFactory::create(DataType dtype) {
-  static const std::map<DataType, std::function<std::unique_ptr<CompactKernel>()>> new_add_handle{
-      MAKE_NEW_FACTORY(NewCompact)};
-
-  auto kernel = NewKernalFromHandlers(new_add_handle, dtype);
-  CHECK_OR_RETURN(kernel) << "AddKernel for type: " << std::to_string(dtype) << " has not implemented.";
-  return kernel;
-};
+IMPL_KERNEL_FACTORY(Compact);
 }  // namespace fineflow
 namespace fineflow {
 namespace {
-REGISTER_KERNEL_FACTORY(CompactKernel, DeviceType::kCPU, CompactKernelFactory);
+REGISTER_KERNEL_FACTORY(Compact, DeviceType::kCPU);
 }  // namespace
 
 }  // namespace fineflow

@@ -17,16 +17,7 @@ import std.compat;
 
 export namespace fineflow {
 
-class FillKernel : public OpKernel {
-public:
-  FF_DISALLOW_COPY_AND_MOVE(FillKernel);
-  FillKernel() = default;
-};
-
-class FillKernelFactory final : public OpKernelFactory {
-public:
-  Ret<std::unique_ptr<OpKernel>> create(DataType dtype);
-};
+DECL_KERNEL(Fill);
 /**
  * @brief Fill buffer.
  *
@@ -53,22 +44,10 @@ class FillKernelImpl final : public FillKernel {
   }
 };
 
-template <typename T>
-std::unique_ptr<FillKernel> NewFill() {
-  return std::make_unique<FillKernelImpl<T>>();
-}
-
-Ret<std::unique_ptr<OpKernel>> FillKernelFactory::create(DataType dtype) {
-  static const std::map<DataType, std::function<std::unique_ptr<FillKernel>()>> new_add_handle{
-      MAKE_NEW_FACTORY(NewFill)};
-
-  auto kernel = NewKernalFromHandlers(new_add_handle, dtype);
-  CHECK_OR_RETURN(kernel) << "FillKernel for type: " << std::to_string(dtype) << " has not implemented.";
-  return kernel;
-};
+IMPL_KERNEL_FACTORY(Fill);
 }  // namespace fineflow
 namespace fineflow {
 namespace {
-REGISTER_KERNEL_FACTORY(FillKernel, DeviceType::kCPU, FillKernelFactory);
+REGISTER_KERNEL_FACTORY(Fill, DeviceType::kCPU);
 }  // namespace
 }  // namespace fineflow

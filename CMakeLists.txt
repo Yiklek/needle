@@ -1,8 +1,9 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 4.2)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(CppModules)
 include(CppModulesClang)
+# include(CppModulesGCC)
 
 project(needle C CXX)
 
@@ -30,14 +31,6 @@ include(Pybind11)
 set(CMAKE_CXX_VISIBILITY_PRESET "hidden")
 
 
-set(CXX_STANDARD_NAME "c++${CMAKE_CXX_STANDARD}")
-
-if(NOT MSVC)
-  set(CMAKE_CXX_FLAGS "-std=${CXX_STANDARD_NAME} ${CMAKE_CXX_FLAGS}")
-  # set(CMAKE_CXX_FLAGS "-std=${CXX_STANDARD_NAME} -fopenmp ${CMAKE_CXX_FLAGS}")
-else()
-  set(CMAKE_CXX_FLAGS "/std:${CXX_STANDARD_NAME} ${CMAKE_CXX_FLAGS}")
-endif()
 
 set(PYTHON_MODULE_PATH needle/backend_ndarray)
 

@@ -16,17 +16,8 @@ import std;
 import std.compat;
 
 export namespace fineflow {
+DECL_KERNEL(Assign);
 
-class AssignKernel : public OpKernel {
-public:
-  FF_DISALLOW_COPY_AND_MOVE(AssignKernel);
-  AssignKernel() = default;
-};
-
-class AssignKernelFactory final : public OpKernelFactory {
-public:
-  Ret<std::unique_ptr<OpKernel>> create(DataType dtype);
-};
 /**
  * @brief Assign buffer.
  *
@@ -73,22 +64,10 @@ class AssignKernelImpl final : public AssignKernel {
   }
 };
 
-template <typename T>
-std::unique_ptr<AssignKernel> NewAssign() {
-  return std::make_unique<AssignKernelImpl<T>>();
-}
-
-Ret<std::unique_ptr<OpKernel>> AssignKernelFactory::create(DataType dtype) {
-  static const std::map<DataType, std::function<std::unique_ptr<AssignKernel>()>> new_add_handle{
-      MAKE_NEW_FACTORY(NewAssign)};
-
-  auto kernel = NewKernalFromHandlers(new_add_handle, dtype);
-  CHECK_OR_RETURN(kernel) << "AssignKernel for type: " << std::to_string(dtype) << " has not implemented.";
-  return kernel;
-};
+IMPL_KERNEL_FACTORY(Assign)
 }  // namespace fineflow
 namespace fineflow {
 namespace {
-REGISTER_KERNEL_FACTORY(AssignKernel, DeviceType::kCPU, AssignKernelFactory);
+REGISTER_KERNEL_FACTORY(Assign, DeviceType::kCPU);
 }
 }  // namespace fineflow
