@@ -1,20 +1,18 @@
 # require CPM
 include(CPM)
 
-# fetch_catch2
-function(fetch_catch2)
-  if(NOT TARGET Catch2::Catch2WithMain)
-    # CPMAddPackage(NAME "gh:catchorg/Catch2@3.4.0" OPTIONS "BUILD_TESTING OFF")
+# fetch_gtest
+function(fetch_gtest)
+  if(NOT TARGET GTest::gtest_main)
     CPMAddPackage(
-      NAME catch2
-      GITHUB_REPOSITORY "catchorg/Catch2"
-      GIT_TAG v3.10.0 OPTIONS "BUILD_TESTING OFF"
+      NAME gtest
+      GITHUB_REPOSITORY "google/googletest"
+      GIT_TAG v1.17.0 OPTIONS "BUILD_TESTING OFF"
       GIT_SHALLOW ON
       EXCLUDE_FROM_ALL ON)
-    list(APPEND CMAKE_MODULE_PATH ${Catch2_SOURCE_DIR}/extras)
-    include(Catch)
+    include(GoogleTest)
   endif()
-endfunction(fetch_catch2)
+endfunction(fetch_gtest)
 
 function(add_cc_test target_name)
   cmake_parse_arguments(_ARG "" "" "SRCS;DEPENDS;DEFINITIONS" ${ARGN})
@@ -24,10 +22,11 @@ function(add_cc_test target_name)
     )
   target_link_libraries(
         ${target_name}
-        Catch2::Catch2WithMain
+        GTest::gtest_main
+        GTest::gmock
         ${_ARG_DEPENDS}
     )
   target_compile_options(${target_name} PRIVATE -fno-access-control)
   target_compile_definitions(${target_name} PRIVATE ${_ARG_DEFINITIONS})
-  catch_discover_tests(${target_name})
+  gtest_discover_tests(${target_name})
 endfunction(add_cc_test)
