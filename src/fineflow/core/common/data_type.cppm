@@ -22,7 +22,8 @@ struct GetDataType<void> : std::integral_constant<DataType, DataType::kChar> {};
 template <DataType Type>
 using DataTypeToType = typename DataTypeToClass<Type>::type;
 
-using DataTypeSizeRegistryMgr = RegistryMgr<DataType, size_t>;
+struct DataTypeToSizeTag{};
+using DataTypeSizeRegistryMgr = RegistryMgr<DataType, size_t, DataTypeToSizeTag>;
 
 template <typename T>
 using type_identity = std::type_identity<T>;

@@ -8,6 +8,7 @@ import fineflow.core.op_kernel.cpu.compact_kernel;
 import fineflow.core.op_kernel.cpu.fill_kernel;
 import fineflow.core.op_kernel;
 import fineflow.core.op_kernel_factory;
+import fineflow.core.functional;
 import fineflow.core.blob_tensor;
 import fineflow.core.common.registry_manager;
 import fineflow.core.common.function_traits;
@@ -56,6 +57,13 @@ inline Ret<void> Call(KernelComputeContext& ctx) {
   return {};
 }
 
+inline Ret<void> Call(const std::string& kernel_name, KernelComputeContext& ctx) {
+  TRY_ASSIGN(auto f, RuntimeKernelFactoryRegistryMgr::Get().GetValue({kernel_name, ctx.device()}));
+  TRY_ASSIGN(auto kernel, (*f)->create(ctx.dtype()));
+  kernel->compute(ctx);
+  return {};
+}
+
 Ret<BlobTensorView> AddFunctor::operator()(const BlobTensorView& a, const BlobTensorView& b) {
   CHECK_OR_RETURN(a.dtype() == b.dtype())
       << format("Tensor a({}) and Tensor b({}) must be same dtype.", a.dtype(), b.dtype());
@@ -65,7 +73,8 @@ Ret<BlobTensorView> AddFunctor::operator()(const BlobTensorView& a, const BlobTe
   ctx.insertTensor("in", 0, a);
   ctx.insertTensor("in", 1, b);
   ctx.insertTensor("out", 0, tc->view());
-  TRY(Call<AddKernel>(ctx));
+  // TRY(Call<AddKernel>(ctx));
+  TRY(Call("Add", ctx));
   return tc->view();
 }
 

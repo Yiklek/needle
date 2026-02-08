@@ -29,8 +29,8 @@ using HashSet = std::unordered_set<Key, Hash>;
 }  // namespace fineflow
 export namespace std {
 
-template <>
-struct hash<std::pair<std::string, size_t>> {
-  std::size_t operator()(const std::pair<std::string, size_t>& p) const { return fineflow::Hash(p.first, p.second); }
+template <typename T1, typename T2>
+struct hash<std::pair<T1, T2>> {
+  std::size_t operator()(const std::pair<T1, T2>& p) const { return fineflow::Hash(p.first, p.second); }
 };
 }  // namespace std

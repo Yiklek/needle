@@ -49,7 +49,7 @@
   };
 
 #define MAP_SPECIALIZE_GET_DATA_TYPE(tuple) FF_PP_FORWARD(SPECIALIZE_GET_DATA_TYPE, FF_TUPLE_TO_ENUM(tuple))
-#define REGISTER_TYPE(type_cpp, type_proto) REGISTER_KEY_VALUE(type_proto, sizeof(type_cpp));
+#define REGISTER_TYPE(type_cpp, type_proto) REGISTER_KEY_VALUE_MGR(DataTypeSizeRegistryMgr, type_proto, sizeof(type_cpp));
 #define MAP_REGISTER_TYPE(tuple) FF_PP_FORWARD(REGISTER_TYPE, FF_TUPLE_TO_ENUM(tuple))
 
 #endif  // FINEFLOW_CORE_COMMON_DATA_TYPE_H_

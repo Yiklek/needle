@@ -17,4 +17,7 @@
 #define REGISTER_KEY_VALUE_T(class_type, key, value) \
   REGISTER_KEY_WITH_CLASS_T(decltype((key)), decltype((value)), class_type, key).setValue((value))
 
+#define REGISTER_KEY_VALUE_MGR(mgr, key, value) \
+  REGISTER_KEY_WITH_CLASS_T(mgr::Key, mgr::Value, mgr::Tag, key).setValue((value))
+
 #endif  // FINEFLOW_CORE_COMMON_REGISTER_MANAGER_HPP_

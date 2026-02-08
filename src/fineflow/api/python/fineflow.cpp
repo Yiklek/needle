@@ -29,7 +29,7 @@ inline const std::string& GetTypeFormat(DataType dtype) {
   return *r;
 }
 inline size_t GetTypeElemSize(DataType dtype) {
-  TRY_ASSIGN_CATCH(auto r, FF_PP_ALL(RegistryMgr<DataType, size_t>::Get().GetValue(dtype)), { ThrowError(e); });
+  TRY_ASSIGN_CATCH(auto r, FF_PP_ALL(DataTypeSizeRegistryMgr::Get().GetValue(dtype)), { ThrowError(e); });
   return *r;
 }
 

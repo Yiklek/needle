@@ -10,6 +10,7 @@ import fineflow.core.common.device_type_proto;
 import fineflow.core.common.log;
 import fineflow.core.common.error;
 import fineflow.core.common.registry_manager;
+import fineflow.core.common.hash;
 import std;
 
 export namespace fineflow {
@@ -37,6 +38,10 @@ public:
   virtual Ret<std::unique_ptr<OpKernel>> create(DataType) { return UNIMPLEMENTED_ERROR; };
 };
 
+struct KernelTag{};
 template <class T>
 using KernelFactoryRegistryMgr = RegistryMgr<DeviceType, std::unique_ptr<OpKernelFactory>, T>;
+
+using RuntimeKernelFactoryRegistryMgr =
+    RegistryMgr<std::pair<std::string, DeviceType>, std::unique_ptr<OpKernelFactory>, KernelTag>;
 }  // namespace fineflow

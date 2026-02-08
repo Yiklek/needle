@@ -10,6 +10,7 @@ import fineflow.core.common.registry_manager;
 // #include "fineflow/core/common/registry_manager.hpp"
 
 export namespace fineflow {
+struct FunctorTag {};
 template <class R, class... Args>
 struct Functor {
   // functor on construct
@@ -21,7 +22,7 @@ struct Functor {
 
   // core func type
   using FuncType = std::function<ReturnType(Args...)>;
-  using RegistryFuncMgr = RegistryMgr<std::string, FuncType>;
+  using RegistryFuncMgr = RegistryMgr<std::string, FuncType, FunctorTag>;
   ReturnType operator()(Args... args) {
     CHECK_OR_RETURN(f_) << "functor (" << name_ << ") is not registered.";
     return (*f_)(args...);

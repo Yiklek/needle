@@ -10,34 +10,32 @@ import fineflow.core.common.log;
 
 export namespace fineflow {
 
-template <class Key, class Value, class Type = void>
+template <class KeyT, class ValueT, class TagT>
 class RegistryMgr {
 private:
   RegistryMgr() = default;
 
 public:
+  using Key = KeyT;
+  using Value = ValueT;
+  using Tag = TagT;
   RegistryMgr(RegistryMgr const&) = delete;
   RegistryMgr& operator=(RegistryMgr const&) = delete;
   static RegistryMgr& Get() {
-    static RegistryMgr<Key, Value, Type> mgr;
+    static RegistryMgr<Key, Value, Tag> mgr;
     return mgr;
   }
 
   Ret<void> Register(Key&& key, Value&& value) {
-    // std::cout << "Register: " << key << std::endl;
-    // std::cerr << "Register: key:" << key << " " << FF_PP_STACK_FUNC << std::endl;
-    // int i = 0;
     CHECK_OR_RETURN(result_.emplace(std::forward<Key>(key), std::forward<Value>(value)).second);
-    // << "Register key: " << key << " failed.";
     return {};
   }
   Ret<const Value* const> GetValue(const Key& key) {
-    // std::cerr << "GetValue: key:" << key << " " << FF_PP_STACK_FUNC << std::endl;
     auto it = result_.find(key);
     CHECK_OR_RETURN(it != result_.end()) << "RegistryMgr Value for key:(" << key << ") not found. ";
     return &(it->second);
   }
-  bool IsRegistered(const Key& key) { return result_.count(key) != 0; }
+  bool IsRegistered(const Key& key) { return result_.find(key) != result_.end(); }
 
   const HashMap<Key, Value>& GetAll() { return result_; };
 
@@ -65,7 +63,6 @@ public:
 template <class Key, class Value, class Type = void>
 struct RegisterTrigger final {
   RegisterTrigger(const Registry<Key, Value>& registry) {  // NOLINT
-    std::cout << "RegisterTrigger: " << registry.key() << std::endl;
     (void)RegistryMgr<Key, Value, Type>::Get().Register(registry.key(), registry.value());
   }
   RegisterTrigger(Registry<Key, Value>&& registry) {  // NOLINT
