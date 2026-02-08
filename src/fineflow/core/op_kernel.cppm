@@ -53,11 +53,21 @@ protected:
 
 private:
   template <typename T, typename... Args>
-  friend OpKernel* NewOpKernel(Args&&... args);
+  friend std::unique_ptr<OpKernel> NewOpKernel(Args&&... args);
 };
 template <typename T, typename... Args>
-OpKernel* NewOpKernel(Args&&... args) {
-  OpKernel* ptr = new T(std::forward<Args>(args)...);
-  return ptr;
+std::unique_ptr<OpKernel> NewOpKernel(Args&&... args) {
+  return std::unique_ptr<OpKernel>(new T(std::forward<Args>(args)...));
 }
+
+template <typename T, typename D>
+std::unique_ptr<T> NewKernalFromHandlers(const std::map<D, std::function<std::unique_ptr<T>()>>& handlers,
+                                         const D& key) {
+  const auto iter = handlers.find(key);
+  if (iter != handlers.end()) {
+    return iter->second();
+  }
+  return nullptr;
+}
+
 }  // namespace fineflow

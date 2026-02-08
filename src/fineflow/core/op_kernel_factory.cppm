@@ -37,16 +37,6 @@ public:
   virtual Ret<std::unique_ptr<OpKernel>> create(DataType) { return UNIMPLEMENTED_ERROR; };
 };
 
-template <typename T, typename D>
-std::unique_ptr<T> NewKernalFromHandlers(const std::map<D, std::function<std::unique_ptr<T>()>>& handlers,
-                                         const D& key) {
-  const auto iter = handlers.find(key);
-  if (iter != handlers.end()) {
-    return iter->second();
-  }
-  return nullptr;
-}
-
 template <class T>
 using KernelFactoryRegistryMgr = RegistryMgr<DeviceType, std::unique_ptr<OpKernelFactory>, T>;
 }  // namespace fineflow
