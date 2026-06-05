@@ -22,18 +22,18 @@ class KernelComputeContext {
 public:
   [[nodiscard]] KernelComputeContext(DeviceType device_type, DataType dtype)
       : device_type_(device_type), dtype_(dtype) {}
-  std::string opName() const { return std::string(); }
+  [[nodiscard]] std::string opName() const { return std::string(); }
   Ret<BlobTensorView> fetchTensor(const std::string& name, size_t index) {
     auto key = std::make_pair(name, index);
     auto it = arg2tensor_.find(key);
     CHECK_OR_RETURN(it != arg2tensor_.end()) << "Not found tensor: " << key;
     return it->second;
   }
-  inline void insertTensor(const std::string& name, size_t index, const BlobTensorView& tensor) {
+   void insertTensor(const std::string& name, size_t index, const BlobTensorView& tensor) {
     arg2tensor_.insert({{name, index}, tensor});
   }
-  DeviceType device() const { return device_type_; }
-  DataType dtype() const { return dtype_; }
+  [[nodiscard]] DeviceType device() const { return device_type_; }
+  [[nodiscard]] DataType dtype() const { return dtype_; }
 
 private:
   HashMap<std::pair<std::string, size_t>, BlobTensorView> arg2tensor_;

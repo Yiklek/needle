@@ -9,7 +9,7 @@ function(fetch_protobuf)
     CPMAddPackage(
       NAME protobuf
       GITHUB_REPOSITORY protocolbuffers/protobuf
-      GIT_TAG v33.2
+      GIT_TAG v35.0
       OPTIONS
         "protobuf_BUILD_TESTS OFF"
         "protobuf_BUILD_SHARED_LIBS OFF"

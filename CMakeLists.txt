@@ -7,6 +7,9 @@ include(CppModulesClang)
 
 project(needle C CXX)
 
+include(FindCXXStdModules)
+find_cxx_stdlib_modules_json()
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS
     ON

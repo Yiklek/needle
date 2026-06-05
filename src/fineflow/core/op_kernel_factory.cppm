@@ -16,17 +16,19 @@ import std;
 export namespace fineflow {
 template <typename Extend, typename T>
 class Factory {
-public:
-  FF_DISALLOW_COPY_AND_MOVE(Factory);
+private:
   Factory() = default;
+
+public:
   ~Factory() = default;
 
   using Target = T;
   using FactoryClass = Extend;
   template <typename Self, typename... Args>
-  Ret<std::unique_ptr<Target>> create(this Self&& self, Args&&... args) {
+  Ret<std::unique_ptr<Target>> create(this Self&& /*self*/, Args&&... args) {
     return std::forward_like<Self>().create(std::forward_like<Args>(args)...);
   };
+  friend Extend;
 };
 
 class OpKernelFactory : public Factory<OpKernelFactory, OpKernel> {

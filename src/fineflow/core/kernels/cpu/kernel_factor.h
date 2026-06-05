@@ -26,7 +26,7 @@
   };                                                                \
   class kernel_name##KernelFactory final : public OpKernelFactory { \
   public:                                                           \
-    Ret<std::unique_ptr<OpKernel>> create(DataType dtype);          \
+    Ret<std::unique_ptr<OpKernel>> create(DataType dtype) override; \
   };
 
 // template <typename T>                                                                         \
