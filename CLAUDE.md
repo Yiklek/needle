@@ -4,6 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 See `AGENTS.md` for build/test/lint commands and code style conventions.
 
+## 约束
+
+- 开发和执行时应当使用项目目录下的uv python venv环境，在每次开始新会话前都应当检查当前是否使用正确环境，如未激活该环境应当立即停止报告提醒激活到正确的环境。
+- TDD 驱动开发
+
 ## Architecture overview
 
 This is a deep learning framework with two layers:
@@ -99,6 +104,54 @@ All functions that can fail return `Ret<T>` (alias for `tl::expected<T, Error>`)
 | `ndarray_backend_cuda` | pybind11 module (CUDA) | `needle/backend_ndarray/ndarray_backend_cuda.so` |
 | `FineflowPyApi` | pybind11 module | New C++23 modules-based Python API |
 | `test_tensor` | CTest executable | C++ unit tests (gtest) |
+
+## C++ coding conventions: C++23 std module (MANDATORY)
+
+**All new C++ code in `src/fineflow/` MUST use C++23 named modules (`.cppm` files).** Traditional `.h`/`.cc` includes are prohibited except for the explicit exceptions listed below.
+
+### Module file structure
+
+Every `.cppm` file follows this pattern:
+
+```cpp
+module;                              // global module fragment
+
+// #include macros and C headers ONLY here — no module imports allowed
+#include "kernel_factor.h"           // macro-only headers OK
+
+export module fineflow.core.xxx;     // module name = namespace path
+
+import fineflow.core.blob_tensor;    // import dependent modules
+import std;                          // C++23 std module (replaces all std headers)
+import std.compat;                   // C stdlib in namespace std (optional)
+
+export namespace fineflow {          // export declaration block
+// all public code here
+}
+```
+
+### Rules
+
+1. **Use `import std;`** instead of any standard library `#include` (`<vector>`, `<string>`, `<memory>`, `<map>`, `<functional>`, etc.).
+2. **Use `import std.compat;`** if you need C library functions in `namespace std`.
+3. **No `#include` of project headers.** Always import them as modules: `import fineflow.core.common.error;`.
+4. **Global module fragment (the `module;` block) is ONLY for** C headers or macro headers (e.g., `kernel_factor.h`, Boost.Preprocessor). Never put module imports here.
+5. **No `#include` guards** — modules are idempotent by design.
+6. **Module name must mirror file path**: `src/fineflow/core/foo.cppm` → `export module fineflow.core.foo;`.
+7. **No anonymous namespaces inside `export` blocks** — use `namespace { }` before the export block.
+
+### Exceptions (files allowed to use traditional headers/includes)
+
+| File / pattern | Reason |
+|---|---|
+| `src/ndarray_backend_cpu.cc` | Legacy pybind11 backend |
+| `src/ndarray_backend_cuda.cu` | Legacy CUDA backend |
+| `src/fineflow/core/kernels/cpu/kernel_factor.h` | Macro-only header |
+| `src/fineflow/core/functional/basic_functor.h` | Macro-only header |
+| `src/fineflow/core/common/map.h`, `preprocess.h` | Macro utilities |
+| `tests/cpp/*.cpp` | GoogleTest, may use traditional includes |
+| `api/python/fineflow.cpp` | pybind11 entry point |
+| `.proto` generated files | Auto-generated code |
 
 ## Key patterns to follow
 
