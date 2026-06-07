@@ -10,6 +10,13 @@
 
 import fineflow.api.python.py_functor;
 import fineflow.api.python.py_tensor;
+import fineflow.api.python.py_dsl;
+import fineflow.core.kernels.dsl.dsl_kernel;
+import fineflow.core.kernels.dsl.dsl_registry;
+import fineflow.core.kernels.dsl.device_launcher;
+import fineflow.core.op_kernel;
+import fineflow.core.blob_tensor;
+import func_impl;
 import fineflow.core.common.exception;
 import fineflow.core.common.fmt;
 import fineflow.core.common.data_type_proto;
@@ -109,6 +116,124 @@ void RegisterAdd(py::module_& m) {
   m.def("ewise_add", ewise_add);
 }
 
+// Convert BlobTensorView to numpy array (zero-copy view).
+// The returned array writes directly into the tensor's memory.
+inline py::array BlobViewToNumpy(BlobTensorView& t) {
+  auto elem_size = GetTypeElemSize(t.dtype());
+  const auto& format = GetTypeFormat(t.dtype());
+  std::vector<ssize_t> shape(t.shape().begin(), t.shape().end());
+  std::vector<ssize_t> strides(t.stride().begin(), t.stride().end());
+  for (auto& s : strides) s *= static_cast<ssize_t>(elem_size);
+
+  // Create a zero-copy view by passing a base object that keeps
+  // the underlying tensor alive. We use a capsule that shares the
+  // BlobTensorPtr from the view.
+  auto ptr = t.ptr();  // shared_ptr<BlobTensor>
+  py::capsule base(ptr.get(), [](void*) { /* capsule owns a ref via shared_ptr copy below */ });
+  // Keep the shared_ptr alive by attaching it to the capsule name
+  // Actually, use the capsule's destructor to hold the shared_ptr
+  auto* held = new BlobTensorPtr(ptr);
+  py::capsule keeper(held, [](void* p) { delete static_cast<BlobTensorPtr*>(p); });
+
+  return py::array(
+      py::dtype(format),
+      shape,
+      strides,
+      t.castPtrMut<void>(),
+      keeper
+  );
+}
+
+void RegisterDSL(py::module_& m) {
+  m.def("register_dsl_kernel",
+      [](const std::string& name, const std::string& device, py::function compute_fn) {
+        auto dev = DeviceType::kCPU;
+        if (device == "cuda") dev = DeviceType::kCUDA;
+        else if (device == "metal") dev = DeviceType::kMetal;
+
+        auto cpp_compute = [compute_fn](KernelComputeContext& ctx) {
+          py::gil_scoped_acquire gil;
+          py::dict inputs;
+          py::dict outputs;
+
+          auto in0 = *ctx.fetchTensor("in", 0);
+          inputs[py::make_tuple("in", 0)] = BlobViewToNumpy(const_cast<BlobTensorView&>(in0));
+
+          auto in1_result = ctx.fetchTensor("in", 1);
+          if (in1_result.has_value()) {
+            auto in1 = *in1_result;
+            inputs[py::make_tuple("in", 1)] = BlobViewToNumpy(const_cast<BlobTensorView&>(in1));
+          }
+
+          auto out0 = *ctx.fetchTensor("out", 0);
+          outputs[py::make_tuple("out", 0)] = BlobViewToNumpy(const_cast<BlobTensorView&>(out0));
+
+          compute_fn(inputs, outputs);
+        };
+
+        RegisterDSLKernelCpp(name, dev, cpp_compute);
+      });
+
+  m.def("register_dsl_kernel_metal",
+      [](const std::string& name,
+         const std::string& dtype_str,
+         const std::string& metal_source,
+         const std::string& entry_point,
+         py::list params_meta) {
+        namespace dsl = fineflow::dsl;
+
+        dsl::DSLKernelMeta meta;
+        meta.name = name;
+        meta.source_type = dsl::Source::kTileLang;
+        meta.target_device = DeviceType::kMetal;
+        meta.metal_source = metal_source;
+        meta.entry_point = entry_point;
+
+        // Metal dispatch 当前走 Python bridge
+        meta.cpu_compute = [](KernelComputeContext& /*ctx*/) {
+          // 占位: 未来用 metal-cpp 编译 .metal → metallib
+        };
+
+        (void)dtype_str;
+        (void)params_meta;
+        (void)dsl::DSLKernelRegistry::Register(std::move(meta));
+      });
+
+  m.def("call_dsl_kernel",
+      [](const std::string& name, Tensor& a) -> Tensor {
+        auto out = Tensor::New(a->device(), a->bufferSize(), a->dtype());
+        (*out)->shapeMut() = (*a)->shape();
+        (*out)->strideMut() = (*a)->stride();
+        KernelComputeContext ctx((*a)->device(), (*a)->dtype());
+        ctx.insertTensor("in", 0, *(*a));
+        ctx.insertTensor("out", 0, *(*out));
+        auto call_ret = Call(name, ctx);
+        if (!call_ret.has_value()) {
+          throw std::runtime_error("DSL kernel call failed");
+        }
+        return out;
+      });
+
+  m.def("call_dsl_kernel2",
+      [](const std::string& name, Tensor& a, Tensor& b) -> Tensor {
+        if ((*a)->dtype() != (*b)->dtype()) {
+          throw std::runtime_error("dtype mismatch in call_dsl_kernel2");
+        }
+        auto out = Tensor::New((*a)->device(), (*a)->bufferSize(), (*a)->dtype());
+        (*out)->shapeMut() = (*a)->shape();
+        (*out)->strideMut() = (*a)->stride();
+        KernelComputeContext ctx((*a)->device(), (*a)->dtype());
+        ctx.insertTensor("in", 0, *(*a));
+        ctx.insertTensor("in", 1, *(*b));
+        ctx.insertTensor("out", 0, *(*out));
+        auto call_ret = Call(name, ctx);
+        if (!call_ret.has_value()) {
+          throw std::runtime_error("DSL kernel call failed");
+        }
+        return out;
+      });
+}
+
 PYBIND11_MODULE(PYBIND11_CURRENT_MODULE_NAME, m) {
   py::register_exception_translator([](std::exception_ptr p) {  // NOLINT
     try {
@@ -126,9 +251,13 @@ PYBIND11_MODULE(PYBIND11_CURRENT_MODULE_NAME, m) {
   RegisterFill(m);
   RegisterAdd(m);
   RegisterAssign(m);
+  RegisterDSL(m);
   py::enum_<DeviceType>(m, "DeviceType")
       .value("cpu", DeviceType::kCPU)
       .value("cuda", DeviceType::kCUDA)
+      .value("metal", DeviceType::kMetal)
+      .value("rocm", DeviceType::kROCm)
+      .value("vulkan", DeviceType::kVulkan)
       .value("none", DeviceType::kInvalidDevice)
       .value("mock", DeviceType::kMockDevice);
 
