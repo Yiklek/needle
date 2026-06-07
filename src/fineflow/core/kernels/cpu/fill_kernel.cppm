@@ -12,35 +12,23 @@ import fineflow.core.common.data_type_proto;
 import fineflow.core.common.device_type_proto;
 import fineflow.core.common.fmt;
 import fineflow.core.common.registry_manager;
+import fineflow.core.executor.parallel_dispatch;
 import std;
 import std.compat;
 
 export namespace fineflow {
 
 DECL_KERNEL(Fill);
-/**
- * @brief Fill buffer.
- *
- * @tparam T Kernel type.
- * @param scalar scalar
- * @param dst dst
- */
-template <class T>
-void Fill(const BlobTensorView& scalar, BlobTensorView& dst) {
-  auto size = dst.bufferSize() / sizeof(T);
-  T* out_ptr = dst.castPtrMut<T>();
-  const T s = *scalar.castPtr<T>();
-  for (size_t i = 0; i < size; i++) {
-    out_ptr[i] = s;
-  }
-}
 
 template <class T>
 class FillKernelImpl final : public FillKernel {
   void compute(KernelComputeContext& ctx) const override {
     auto scalar = *ctx.fetchTensor("scalar", 0);
     auto dst = *ctx.fetchTensor("dst", 0);
-    Fill<T>(scalar, dst);
+    auto size = dst.bufferSize() / sizeof(T);
+    T* out_ptr = dst.castPtrMut<T>();
+    const T s = *scalar.castPtr<T>();
+    ParallelDispatch(size, 64, [=](int gid) { out_ptr[gid] = s; });
   }
 };
 
