@@ -110,12 +110,14 @@ file(GLOB FINEFLOW_CORE_MODULE_SRCS  src/fineflow/core/*.cppm)
 file(GLOB FINEFLOW_CORE_FUNCTOR_MODULE_SRCS  src/fineflow/core/functional/*_functor.cppm)
 file(GLOB FINEFLOW_CORE_CPU_KERNEL_MODULE_SRCS  src/fineflow/core/kernels/cpu/*_kernel.cppm)
 file(GLOB FINEFLOW_CORE_DSL_KERNEL_MODULE_SRCS  src/fineflow/core/kernels/dsl/*.cppm)
+file(GLOB FINEFLOW_CORE_EXECUTOR_MODULE_SRCS  src/fineflow/core/executor/*.cppm)
 add_cpp_module_library(FineflowCore STATIC
   MODULE_SRCS
   ${FINEFLOW_CORE_MODULE_SRCS}
   ${FINEFLOW_CORE_FUNCTOR_MODULE_SRCS}
   ${FINEFLOW_CORE_CPU_KERNEL_MODULE_SRCS}
   ${FINEFLOW_CORE_DSL_KERNEL_MODULE_SRCS}
+  ${FINEFLOW_CORE_EXECUTOR_MODULE_SRCS}
 )
 target_link_libraries(FineflowCore PUBLIC FineflowCommon)
 
@@ -213,4 +215,5 @@ if(FINEFLOW_BUILD_TEST)
   add_cc_test(test_tensor SRCS tests/cpp/test_tensor.cpp DEPENDS FineflowCore)
   add_cc_test(test_dsl_kernel SRCS tests/cpp/test_dsl_kernel.cpp DEPENDS FineflowCore)
 
+  add_cc_test(test_cpu_executor SRCS tests/cpp/test_cpu_executor.cpp DEPENDS FineflowCore)
 endif(FINEFLOW_BUILD_TEST)
