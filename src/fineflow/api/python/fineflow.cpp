@@ -156,19 +156,44 @@ void RegisterDSL(py::module_& m) {
           py::dict inputs;
           py::dict outputs;
 
-          auto in0 = *ctx.fetchTensor("in", 0);
-          inputs[py::make_tuple("in", 0)] = BlobViewToNumpy(const_cast<BlobTensorView&>(in0));
-
-          auto in1_result = ctx.fetchTensor("in", 1);
-          if (in1_result.has_value()) {
-            auto in1 = *in1_result;
-            inputs[py::make_tuple("in", 1)] = BlobViewToNumpy(const_cast<BlobTensorView&>(in1));
+          // Variable-length inputs: iterate all ("in", i)
+          for (size_t i = 0; ; i++) {
+            auto t = ctx.fetchTensor("in", i);
+            if (!t.has_value()) break;
+            inputs[py::make_tuple("in", i)] =
+                BlobViewToNumpy(const_cast<BlobTensorView&>(t.value()));
+          }
+          // Variable-length outputs: iterate all ("out", i)
+          for (size_t i = 0; ; i++) {
+            auto t = ctx.fetchTensor("out", i);
+            if (!t.has_value()) break;
+            outputs[py::make_tuple("out", i)] =
+                BlobViewToNumpy(const_cast<BlobTensorView&>(t.value()));
           }
 
-          auto out0 = *ctx.fetchTensor("out", 0);
-          outputs[py::make_tuple("out", 0)] = BlobViewToNumpy(const_cast<BlobTensorView&>(out0));
+          // Convert attrs to Python dict
+          py::dict py_attrs;
+          for (auto& [k, v] : ctx.attrs()) {
+            std::visit([&](auto&& val) {
+              using T = std::decay_t<decltype(val)>;
+              if constexpr (std::is_same_v<T, int64_t>)
+                py_attrs[k.c_str()] = static_cast<long>(val);
+              else if constexpr (std::is_same_v<T, double>)
+                py_attrs[k.c_str()] = val;
+              else if constexpr (std::is_same_v<T, std::string>)
+                py_attrs[k.c_str()] = val;
+              else
+                py_attrs[k.c_str()] = py::cast(val);
+            }, v);
+          }
 
-          compute_fn(inputs, outputs);
+          // Call with or without attrs based on function signature
+          try {
+            compute_fn(inputs, outputs, py_attrs);
+          } catch (py::error_already_set&) {
+            PyErr_Clear();
+            compute_fn(inputs, outputs);
+          }
         };
 
         RegisterDSLKernelCpp(name, dev, cpp_compute);
@@ -209,9 +234,33 @@ void RegisterDSL(py::module_& m) {
         ctx.insertTensor("out", 0, *(*out));
         auto call_ret = Call(name, ctx);
         if (!call_ret.has_value()) {
-          throw std::runtime_error("DSL kernel call failed");
+          throw std::runtime_error("DSL kernel '" + name + "' call failed (check registry or compute)");
         }
         return out;
+      });
+
+  m.def("call_dsl_kernel_v2",
+      [](const std::string& name, py::list inputs, py::list outputs) -> void {
+        if (py::len(inputs) == 0 && py::len(outputs) == 0)
+          throw std::runtime_error("call_dsl_kernel_v2: need inputs or outputs");
+
+        auto& first_tensor = py::len(inputs) > 0
+            ? py::cast<Tensor&>(inputs[0])
+            : py::cast<Tensor&>(outputs[0]);
+
+        KernelComputeContext ctx((*first_tensor)->device(), (*first_tensor)->dtype());
+        for (size_t i = 0; i < py::len(inputs); i++) {
+            auto& t = py::cast<Tensor&>(inputs[i]);
+            ctx.insertTensor("in", i, *(*t));
+        }
+        for (size_t i = 0; i < py::len(outputs); i++) {
+            auto& t = py::cast<Tensor&>(outputs[i]);
+            ctx.insertTensor("out", i, *(*t));
+        }
+
+        auto call_ret = Call(name, ctx);
+        if (!call_ret.has_value())
+          throw std::runtime_error("DSL kernel '" + name + "' call failed (check registry or compute)");
       });
 
   m.def("call_dsl_kernel2",
@@ -228,7 +277,7 @@ void RegisterDSL(py::module_& m) {
         ctx.insertTensor("out", 0, *(*out));
         auto call_ret = Call(name, ctx);
         if (!call_ret.has_value()) {
-          throw std::runtime_error("DSL kernel call failed");
+          throw std::runtime_error("DSL kernel '" + name + "' call failed (check registry or compute)");
         }
         return out;
       });
