@@ -32,6 +32,7 @@ class KernelArtifact:
     entry_point: str
     params_meta: list[ParamMeta]
     cache_path: Optional[Path]
+    native_lib_path: Optional[Path] = None  # .dylib/.so path for native CPU execution
 
 
 def _default_cache_dir() -> Path:
@@ -119,15 +120,41 @@ def compile_kernel(prim_func, *, name: str, target: str,
         cached.kernel_name = name
         return cached
 
-    artifact = lower(prim_func, target=target)
-    kernel_source = artifact.kernel_source
-    entry_point = _extract_entry_point(kernel_source, name)
-    params_meta = _extract_params_meta(prim_func)
+    # CPU target: compile via LLVM to native .dylib
+    native_lib_path = None
+    if target == "cpu":
+        try:
+            artifact = lower(prim_func, target="llvm", enable_device_compile=True)
+            kernel_source = artifact.kernel_source or ""
+            entry_point = _extract_entry_point(kernel_source, name)
+            params_meta = _extract_params_meta(prim_func)
+
+            # Export to .dylib in cache dir
+            cache_dir_path = Path(cache_dir) if cache_dir else _default_cache_dir()
+            lib_cache_path = cache_dir_path / source_hash
+            lib_cache_path.mkdir(parents=True, exist_ok=True)
+            ext = ".dylib" if __import__('sys').platform == "darwin" else ".so"
+            so_path = lib_cache_path / f"lib{name}{ext}"
+            if artifact.rt_mod is not None:
+                artifact.rt_mod.export_library(str(so_path))
+                native_lib_path = so_path
+        except Exception as e:
+            import logging
+            logging.warning("Native CPU compilation for '%s' failed: %s. Falling back to Python bridge.", name, e)
+
+    if native_lib_path is None:
+        # Fallback: use source-level lower (for metal/cuda or CPU native failure)
+        tilelang_target = "metal" if target == "metal" else target
+        artifact = lower(prim_func, target=tilelang_target)
+        kernel_source = artifact.kernel_source
+        entry_point = _extract_entry_point(kernel_source, name)
+        params_meta = _extract_params_meta(prim_func)
 
     result = KernelArtifact(
         kernel_name=name, target=target, source_hash=source_hash,
         kernel_source=kernel_source, entry_point=entry_point,
         params_meta=params_meta, cache_path=None,
+        native_lib_path=native_lib_path,
     )
     result.cache_path = _save_cache(result, cache_path)
     return result

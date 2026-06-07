@@ -2,6 +2,7 @@ module;
 #include "fineflow/core/common/result.h"
 #include "fineflow/core/common/util.h"
 #include <cstdint>
+#include <dlfcn.h>
 
 export module fineflow.core.kernels.dsl.device_launcher;
 
@@ -31,6 +32,9 @@ struct DSLKernelMeta {
   // Operator attributes (compile-time defaults)
   AttrMap attrs_schema;
 
+  // Native compiled library path (.dylib/.so) for dlopen
+  std::string native_lib_path;
+
   // GPU: binary blob
   std::vector<uint8_t> binary;
 };
@@ -48,7 +52,7 @@ protected:
   DeviceLauncher() = default;
 };
 
-// CPU device launcher — executes meta.cpu_compute directly
+// CPU device launcher — Python bridge (development/fallback)
 class CpuDeviceLauncher final : public DeviceLauncher {
 public:
   CpuDeviceLauncher() = default;
@@ -58,6 +62,42 @@ public:
     meta.cpu_compute(ctx);
     return {};
   }
+};
+
+// Native CPU device launcher — dlopen compiled .dylib/.so
+class NativeCpuDeviceLauncher final : public DeviceLauncher {
+public:
+  explicit NativeCpuDeviceLauncher(std::string lib_path)
+      : lib_path_(std::move(lib_path)) {}
+
+  Ret<void> launch(const DSLKernelMeta& meta, KernelComputeContext& ctx) override {
+    // Attempt native execution: dlopen the compiled library
+    if (!lib_path_.empty()) {
+      void* handle = dlopen(lib_path_.c_str(), RTLD_NOW | RTLD_LOCAL);
+      if (handle != nullptr) {
+        dlerror();
+        std::string symbol_name = "_" + meta.entry_point;
+        void* fn = dlsym(handle, symbol_name.c_str());
+        if (fn != nullptr) {
+          // Native kernel symbol found. TVM FFI calling convention requires
+          // DLTensor argument packing — currently delegated to Python bridge.
+          // Future: pack DLTensors from ctx tensors and call fn directly.
+          dlclose(handle);
+        } else {
+          dlclose(handle);
+        }
+      }
+    }
+    // Fallback to Python bridge for execution
+    if (meta.cpu_compute) {
+      meta.cpu_compute(ctx);
+      return {};
+    }
+    return UNIMPLEMENTED_ERROR;
+  }
+
+private:
+  std::string lib_path_;
 };
 
 // Metal device launcher — stub for macOS Metal support
