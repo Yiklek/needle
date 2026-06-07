@@ -101,9 +101,8 @@ add_cpp_module_library(FineflowCommon STATIC
 
 target_link_libraries(FineflowCommon PUBLIC proto-objects ThirdCommon)
 
-# stdexec — header-only Senders/Receivers (C++26 std::execution reference impl)
-add_library(stdexec INTERFACE)
-target_include_directories(stdexec INTERFACE ${CMAKE_SOURCE_DIR}/stdexec/include)
+include(FetchStdexec)
+fetch_stdexec()
 target_link_libraries(FineflowCommon INTERFACE stdexec)
 
 file(GLOB FINEFLOW_CORE_MODULE_SRCS  src/fineflow/core/*.cppm)
