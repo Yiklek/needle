@@ -101,14 +101,21 @@ add_cpp_module_library(FineflowCommon STATIC
 
 target_link_libraries(FineflowCommon PUBLIC proto-objects ThirdCommon)
 
+# stdexec — header-only Senders/Receivers (C++26 std::execution reference impl)
+add_library(stdexec INTERFACE)
+target_include_directories(stdexec INTERFACE ${CMAKE_SOURCE_DIR}/stdexec/include)
+target_link_libraries(FineflowCommon INTERFACE stdexec)
+
 file(GLOB FINEFLOW_CORE_MODULE_SRCS  src/fineflow/core/*.cppm)
 file(GLOB FINEFLOW_CORE_FUNCTOR_MODULE_SRCS  src/fineflow/core/functional/*_functor.cppm)
 file(GLOB FINEFLOW_CORE_CPU_KERNEL_MODULE_SRCS  src/fineflow/core/kernels/cpu/*_kernel.cppm)
+file(GLOB FINEFLOW_CORE_DSL_KERNEL_MODULE_SRCS  src/fineflow/core/kernels/dsl/*.cppm)
 add_cpp_module_library(FineflowCore STATIC
   MODULE_SRCS
   ${FINEFLOW_CORE_MODULE_SRCS}
   ${FINEFLOW_CORE_FUNCTOR_MODULE_SRCS}
   ${FINEFLOW_CORE_CPU_KERNEL_MODULE_SRCS}
+  ${FINEFLOW_CORE_DSL_KERNEL_MODULE_SRCS}
 )
 target_link_libraries(FineflowCore PUBLIC FineflowCommon)
 
@@ -204,5 +211,6 @@ if(FINEFLOW_BUILD_TEST)
   fetch_gtest()
   include(CTest)
   add_cc_test(test_tensor SRCS tests/cpp/test_tensor.cpp DEPENDS FineflowCore)
+  add_cc_test(test_dsl_kernel SRCS tests/cpp/test_dsl_kernel.cpp DEPENDS FineflowCore)
 
 endif(FINEFLOW_BUILD_TEST)
