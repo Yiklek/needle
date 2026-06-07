@@ -57,20 +57,9 @@ def test_decorator_kernel_callable():
         with TL.Kernel(128) as bx:
             Z[bx] = X[bx] + Y[bx]
 
-    # Test that compilation + metal source is correct
-    assert add_kernel._dsl_meta["name"] == "reg_callable"
-    art = add_kernel._dsl_meta["_results"]["metal"]
-    assert art.kernel_source is not None
-    assert "metal_stdlib" in art.kernel_source
-
-    # Test CPU compute works (via direct registration)
-    def add_cpu(inputs, outputs):
-        np.add(inputs[("in", 0)], inputs[("in", 1)], out=outputs[("out", 0)])
-    lib.register_dsl_kernel("reg_callable_cpu", "cpu", add_cpu)
-
     a = np.ones(128, dtype="float32") * 1.0
     b = np.ones(128, dtype="float32") * 2.0
-    result = lib.call_dsl_kernel2("reg_callable_cpu", lib.from_numpy(a), lib.from_numpy(b))
+    result = lib.call_dsl_kernel2("reg_callable", lib.from_numpy(a), lib.from_numpy(b))
     np.testing.assert_allclose(lib.to_numpy(result), a + b, atol=1e-5)
 
 

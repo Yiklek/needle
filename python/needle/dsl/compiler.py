@@ -115,6 +115,8 @@ def compile_kernel(prim_func, *, name: str, target: str,
 
     cached = _load_cache(source_hash, target, cache_path)
     if cached is not None:
+        # Override kernel_name — same TIR can be registered under different names
+        cached.kernel_name = name
         return cached
 
     artifact = lower(prim_func, target=target)
