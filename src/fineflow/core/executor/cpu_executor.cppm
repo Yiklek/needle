@@ -1,6 +1,7 @@
 module;
 #include <latch>
-#include <thread>
+#include <exec/static_thread_pool.hpp>
+#include <stdexec/execution.hpp>
 export module fineflow.core.executor.cpu_executor;
 import std;
 import std.compat;
@@ -42,17 +43,14 @@ public:
     }
     void enqueue(CpuKernel& kernel, CpuRange global, CpuRange local) {
         size_t nw = global.work_group_count(local);
-        std::latch latch(static_cast<ptrdiff_t>(nw));
-        for (size_t wg = 0; wg < nw; wg++) {
-            pool_.push_back(std::thread([this, &kernel, global, local, wg, &latch] {
-                actors_[wg % actors_.size()]
-                    ->execute_wg(kernel, (int)wg, global, local);
-                latch.count_down();
-            }));
-        }
-        latch.wait();
-        for (auto& t : pool_) if (t.joinable()) t.join();
-        pool_.clear();
+        auto sched = pool_.get_scheduler();
+        auto snd = stdexec::schedule(sched)
+                 | stdexec::bulk(stdexec::par, nw,
+                     [this, &kernel, global, local](size_t wg_id) {
+                         actors_[wg_id % actors_.size()]
+                             ->execute_wg(kernel, (int)wg_id, global, local);
+                     });
+        stdexec::sync_wait(std::move(snd));
     }
     void wait() {}
     CpuGraphBuilder build_graph() { return CpuGraphBuilder(this); }
@@ -60,11 +58,11 @@ public:
         return std::unique_ptr<CpuStream>(new CpuStream(this));
     }
 private:
-    explicit CpuExecutor(size_t n) {
+    explicit CpuExecutor(size_t n) : pool_(n) {
         for (size_t i = 0; i < n; i++)
             actors_.push_back(std::make_unique<CpuActor>(256));
     }
-    std::vector<std::thread> pool_;
+    exec::static_thread_pool pool_;
     std::vector<std::unique_ptr<CpuActor>> actors_;
 };
 
