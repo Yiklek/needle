@@ -28,6 +28,9 @@ struct DSLKernelMeta {
   std::string metal_source;
   std::string entry_point;
 
+  // Operator attributes (compile-time defaults)
+  AttrMap attrs_schema;
+
   // GPU: binary blob
   std::vector<uint8_t> binary;
 };

@@ -18,6 +18,14 @@ import std.compat;
 
 export namespace fineflow {
 
+enum class AttrType { kInt, kFloat, kString, kInts, kFloats, kStrings };
+
+using AttrValue = std::variant<
+    int64_t, double, std::string,
+    std::vector<int64_t>, std::vector<double>, std::vector<std::string>>;
+
+using AttrMap = std::unordered_map<std::string, AttrValue>;
+
 class KernelComputeContext {
 public:
   [[nodiscard]] KernelComputeContext(DeviceType device_type, DataType dtype)
@@ -32,10 +40,13 @@ public:
    void insertTensor(const std::string& name, size_t index, const BlobTensorView& tensor) {
     arg2tensor_.insert({{name, index}, tensor});
   }
+  void setAttrs(AttrMap attrs) { attrs_ = std::move(attrs); }
+  [[nodiscard]] const AttrMap& attrs() const { return attrs_; }
   [[nodiscard]] DeviceType device() const { return device_type_; }
   [[nodiscard]] DataType dtype() const { return dtype_; }
 
 private:
+  AttrMap attrs_;
   HashMap<std::pair<std::string, size_t>, BlobTensorView> arg2tensor_;
   DeviceType device_type_;
   DataType dtype_;
