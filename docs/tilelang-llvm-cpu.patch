@@ -1,0 +1,18 @@
+diff --git a/tilelang/engine/lower.py b/tilelang/engine/lower.py
+index 21e80b4..7f49285 100644
+--- a/tilelang/engine/lower.py
++++ b/tilelang/engine/lower.py
+@@ -329,6 +329,13 @@ def lower(
+         runtime_only=runtime_only,
+     )
+ 
++    # For llvm target with device compilation: compile host_mod IR to runtime module
++    if target.kind.name == "llvm" and enable_device_compile:
++        import tvm
++        rt_mod = tvm.ffi.get_global_func("target.build.llvm")(host_mod, target)
++        kernel_source = host_mod.inspect_source() if hasattr(host_mod, 'inspect_source') else ''
++        return CompiledArtifact(host_mod, device_mod, params, kernel_source, rt_mod=rt_mod)
++
+     codegen_mod = device_codegen(device_mod, target) if enable_device_compile else device_codegen_without_compile(device_mod, target)
+     kernel_source = codegen_mod.inspect_source()
+ 
